@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Net Production Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .panel {
+      width: 100%;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .panel-header {
+      padding: 16px;
+      background: #fff;
+    }
+    .panel-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: normal;
+      color: #333;
+    }
+    .panel-header .amount {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 8px;
+      color: #000;
+    }
+    .panel-body {
+      background: #eee;
+      padding: 16px;
+      font-size: 14px;
+    }
+    .negative {
+      color: #D43F3A;
+      font-weight: bold;
+    }
+    .arrow-down {
+      display: inline-block;
+      transform: rotate(0deg);
+      color: #D43F3A;
+    }
+    .rank {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="panel">
+  <div class="panel-header">
+    <h3>Net Production</h3>
+    <div class="amount" id="netProduction"></div>
+  </div>
+  <div class="panel-body">
+    <div>Prior Year: <span id="priorYear"></span></div>
+    <div>
+      % Change: 
+      <span id="percentChange" class="negative"></span>
+      <span id="changeArrow" class="arrow-down">▼</span>
+    </div>
+    <div class="rank">
+      Rank: <span id="rankCurrent" class="bold"></span> of <span id="rankTotal"></span>
+    </div>
+  </div>
+</div>
+
+<!-- jQuery CDN -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  const productionData = {
+    current: 717414,
+    prior: 803508,
+    changePercent: -0.107,
+    rank: 16,
+    totalProviders: 51
+  };
+
+  function formatCurrency(val) {
+    return val.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  }
+
+  function formatPercent(val) {
+    return (val * 100).toFixed(1) + '%';
+  }
+
+  $(document).ready(function () {
+    $('#netProduction').text(formatCurrency(productionData.current));
+    $('#priorYear').text(formatCurrency(productionData.prior));
+    $('#percentChange').text(formatPercent(productionData.changePercent));
+
+    if (productionData.changePercent < 0) {
+      $('#percentChange').addClass('negative');
+      $('#changeArrow').show();
+    } else {
+      $('#percentChange').removeClass('negative');
+      $('#changeArrow').hide();
+    }
+
+    $('#rankCurrent').text(productionData.rank).css('font-weight', 'bold');
+    $('#rankTotal').text(productionData.totalProviders);
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+
+<!-- Inspiriation from https://d3-graph-gallery.com/graph/connectionmap_csv.html -->
+
+<!-- Load the Reveal Bridge - Required for Custom Visualizations -->
+<script src="reveal.bridge.js"></script>
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+
+<!-- Load lodash -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap");
+
+  body {
+    margin: 0;
+    overflow: hidden;
+    font-family: "Roboto", sans-serif;
+  }
+
+  svg {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .tooltip {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px 15px;
+    font-size: 12px;
+    pointer-events: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    max-width: 300px;
+    z-index: 1000;
+  }
+
+  .city-label-group {
+    pointer-events: none;
+  }
+
+  .city-label-background {
+    fill: rgba(129, 132, 130, 0.7);
+    rx: 4;
+    ry: 4;
+  }
+
+  .city-label {
+    fill: white;
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+  */ .map-layer {
+    z-index: 1;
+  }
+  .arc-layer {
+    z-index: 2;
+  }
+  .city-layer {
+    z-index: 3;
+  }
+  .label-layer {
+    z-index: 4;
+  }
+
+  .city-point-inner {
+    pointer-events: none;
+  }
+  .city-point-outer {
+    pointer-events: none;
+  }
+</style>
+
+<svg id="my_dataviz"></svg>
+<div class="tooltip"></div>
+
+<script>
+  // Initialize dimensions and global variables
+  let width = window.innerWidth;
+  let height = window.innerHeight;
+  let cities = [];
+  let links = [];
+
+  // Create SVG and layers
+  const svg = d3
+    .select("#my_dataviz")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .style("width", "100%")
+    .style("height", "100%");
+
+  // Initialize global layers
+  const mapLayer = svg.append("g").attr("class", "map-layer");
+  const arcLayer = svg.append("g").attr("class", "arc-layer");
+  const cityLayer = svg.append("g").attr("class", "city-layer");
+  const labelLayer = svg.append("g").attr("class", "label-layer");
+
+  // Create tooltip
+  const tooltip = d3.select(".tooltip");
+
+  // Create projection specifically for USA
+  let projection = d3
+    .geoAlbersUsa()
+    .translate([width / 2, height / 2])
+    .scale(width);
+
+  // Create path generator
+  const path = d3.geoPath().projection(projection);
+
+  function dataToJson(data) {
+    if (!data?.metadata?.columns) {
+      console.warn("Invalid data structure received");
+      return [];
+    }
+    const propertyNames = data.metadata.columns.map((col) => col.name);
+
+    if (!Array.isArray(data.data)) {
+      console.warn("Data is not an array");
+      return [];
+    }
+
+    const result = data.data.map((row) =>
+      row.reduce((acc, value, index) => {
+        acc[propertyNames[index]] = value;
+        return acc;
+      }, {})
+    );
+    return result;
+  }
+
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = date.toLocaleString("default", { month: "short" });
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+
+  function formatTooltip(d) {
+    const ticketPrice =
+      d.ticketPrice !== undefined && d.ticketPrice !== null
+        ? d.ticketPrice.toLocaleString()
+        : "N/A";
+
+    return `
+      <div style="font-family: 'Roboto', sans-serif;">
+        <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #ccc; padding-bottom: 4px;">
+          Flight Details
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>Origin:</strong><br>
+          ${d.originName}, ${d.originCity}, ${d.originState}
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>Destination:</strong><br>
+          ${d.destinationName}, ${d.destinationCity}, ${d.destinationState}
+        </div>
+        <div style="margin-bottom: 4px;">
+          <strong>Order Date:</strong> ${formatDate(d.orderDate)}
+        </div>
+        <div>
+          <strong>Ticket Price:</strong> $${ticketPrice}
+        </div>
+      </div>`;
+  }
+
+  function updateCityLabels() {
+    labelLayer.selectAll(".city-label-group").each(function (d) {
+      const group = d3.select(this);
+
+      // Update origin position
+      const originGroup = group.select(".origin-group");
+      const origin = projection(d.coordinates[0]);
+      if (origin && originGroup.node()) {
+        originGroup.attr("transform", `translate(${origin[0]},${origin[1]})`);
+      }
+
+      // Update destination position
+      const destGroup = group.select(".dest-group");
+      const destination = projection(d.coordinates[1]);
+      if (destination && destGroup.node()) {
+        destGroup.attr(
+          "transform",
+          `translate(${destination[0]},${destination[1]})`
+        );
+      }
+    });
+  }
+
+  function handleResize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+
+    svg.attr("viewBox", `0 0 ${width} ${height}`);
+    projection.translate([width / 2, height / 2]).scale(width);
+    path.projection(projection);
+
+    // Update base map
+    mapLayer.selectAll("path").attr("d", path);
+
+    // Update flight paths
+    arcLayer.selectAll(".flight-path").attr("d", (d) => {
+      const start = projection(d.coordinates[0]);
+      const end = projection(d.coordinates[1]);
+      const dx = end[0] - start[0],
+        dy = end[1] - start[1],
+        dr = Math.sqrt(dx * dx + dy * dy) * 1.2;
+      return `M${start[0]},${start[1]}A${dr},${dr} 0 0,1 ${end[0]},${end[1]}`;
+    });
+    arcLayer
+      .selectAll(".city-point-outer, .city-point-dest-outer")
+      .attr("cx", (d) => projection(d.coordinates)[0])
+      .attr("cy", (d) => projection(d.coordinates)[1]);
+
+    arcLayer
+      .selectAll(".city-point-inner, .city-point-dest-inner")
+      .attr("cx", (d) => projection(d.coordinates)[0])
+      .attr("cy", (d) => projection(d.coordinates)[1]);
+
+    // Update city labels
+    updateCityLabels();
+  }
+
+  async function fetchAndProcessData() {
+    try {
+      if (!cities.length || !links.length) {
+        console.warn("Data has not been loaded yet.");
+        return { cities: [], links: [] };
+      }
+      return { cities, links };
+    } catch (error) {
+      console.error("Error processing data:", error);
+      return { cities: [], links: [] };
+    }
+  }
+
+  async function drawMap() {
+  try {
+    // Validate coordinates
+    const hasValidCoordinates = links.every((link) =>
+      Array.isArray(link.coordinates) &&
+      link.coordinates.length === 2 &&
+      link.coordinates[0].length === 2 &&
+      link.coordinates[1].length === 2 &&
+      link.coordinates[0].every(coord => coord != null && coord !== "") &&
+      link.coordinates[1].every(coord => coord != null && coord !== "")
+    );
+
+    if (!hasValidCoordinates) {
+      console.error("Invalid coordinates found. Canceling map drawing.");
+      return;
+    }
+
+    // Clear all layers
+    mapLayer.selectAll("*").remove();
+    arcLayer.selectAll("*").remove();
+    cityLayer.selectAll("*").remove();
+    labelLayer.selectAll("*").remove();
+
+    // Load base map
+    const response = await fetch(
+      "https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json"
+    );
+    const usa = await response.json();
+
+    mapLayer
+      .selectAll("path")
+      .data(usa.features)
+      .enter()
+      .append("path")
+      .attr("fill", "#d3d3d3")
+      .attr("d", path)
+      .style("stroke", "#fff")
+      .style("stroke-width", 0.5);
+
+    // Fetch processed data
+    const data = await fetchAndProcessData();
+    if (!data) return;
+
+    // Draw arcs (flight paths)
+    arcLayer
+      .selectAll(".flight-path")
+      .data(data.links)
+      .enter()
+      .append("path")
+      .attr("class", "flight-path")
+      .attr("d", (d) => {
+        const start = projection(d.coordinates[0]);
+        const end = projection(d.coordinates[1]);
+        if (!start || !end) return null;
+        const dx = end[0] - start[0],
+              dy = end[1] - start[1],
+              dr = Math.sqrt(dx * dx + dy * dy) * 1.2;
+        return `M${start[0]},${start[1]}A${dr},${dr} 0 0,1 ${end[0]},${end[1]}`;
+      })
+      .style("fill", "none")
+      .style("stroke", "orange")
+      .style("stroke-width", 2)
+      .on("mouseover", function (d, i) {
+        d3.select(this).style("stroke", "red").style("stroke-width", 4);
+        labelLayer.selectAll(`.label-${i}`).style("visibility", "visible");
+        tooltip
+          .style("opacity", 1)
+          .html(formatTooltip(d))
+          .style("left", `${d3.event.pageX + 10}px`)
+          .style("top", `${d3.event.pageY - 10}px`);
+      })
+      .on("mouseout", function (d, i) {
+        d3.select(this).style("stroke", "orange").style("stroke-width", 2);
+        labelLayer.selectAll(`.label-${i}`).style("visibility", "hidden");
+        tooltip.style("opacity", 0);
+      });
+
+    // Draw city points (green dots)
+    const cityGroups = arcLayer
+      .selectAll(".city-group")
+      .data(data.links)
+      .enter()
+      .append("g")
+      .attr("class", "city-group");
+
+    // Origin outer circle
+    cityGroups.append("circle")
+      .attr("class", "city-point-outer")
+      .datum(d => ({ coordinates: d.coordinates[0] }))
+      .attr("r", 8)
+      .style("fill", "rgba(0, 128, 0, 0.3)")
+      .attr("cx", d => projection(d.coordinates)[0])
+      .attr("cy", d => projection(d.coordinates)[1]);
+
+    // Origin inner circle
+    cityGroups.append("circle")
+      .attr("class", "city-point-inner")
+      .datum(d => ({ coordinates: d.coordinates[0] }))
+      .attr("r", 4)
+      .style("fill", "green")
+      .attr("cx", d => projection(d.coordinates)[0])
+      .attr("cy", d => projection(d.coordinates)[1]);
+
+    // Destination outer circle
+    cityGroups.append("circle")
+      .attr("class", "city-point-dest-outer")
+      .datum(d => ({ coordinates: d.coordinates[1] }))
+      .attr("r", 8)
+      .style("fill", "rgba(0, 128, 0, 0.3)")
+      .attr("cx", d => projection(d.coordinates)[0])
+      .attr("cy", d => projection(d.coordinates)[1]);
+
+    // Destination inner circle
+    cityGroups.append("circle")
+      .attr("class", "city-point-dest-inner")
+      .datum(d => ({ coordinates: d.coordinates[1] }))
+      .attr("r", 4)
+      .style("fill", "green")
+      .attr("cx", d => projection(d.coordinates)[0])
+      .attr("cy", d => projection(d.coordinates)[1]);
+
+    // Draw city labels
+    labelLayer
+      .selectAll(".city-label-group")
+      .data(data.links)
+      .enter()
+      .append("g")
+      .attr("class", (d, i) => `city-label-group label-${i}`)
+      .style("visibility", "hidden")
+      .each(function (d) {
+        const group = d3.select(this);
+        const padding = 5;
+        const labelHeight = 14;
+
+        const origin = projection(d.coordinates[0]);
+        if (origin) {
+          const originGroup = group.append("g").attr("class", "origin-group")
+            .attr("transform", `translate(${origin[0]},${origin[1]})`);
+          const originText = originGroup.append("text")
+            .attr("class", "city-label")
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
+            .text(d.originCity);
+          const originWidth = originText.node().getBBox().width;
+          originGroup.insert("rect", "text")
+            .attr("class", "city-label-background")
+            .attr("x", -(originWidth / 2 + padding))
+            .attr("y", -(labelHeight / 2))
+            .attr("width", originWidth + padding * 2)
+            .attr("height", labelHeight);
+        }
+
+        const destination = projection(d.coordinates[1]);
+        if (destination) {
+          const destGroup = group.append("g").attr("class", "dest-group")
+            .attr("transform", `translate(${destination[0]},${destination[1]})`);
+          const destText = destGroup.append("text")
+            .attr("class", "city-label")
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
+            .text(d.destinationCity);
+          const destWidth = destText.node().getBBox().width;
+          destGroup.insert("rect", "text")
+            .attr("class", "city-label-background")
+            .attr("x", -(destWidth / 2 + padding))
+            .attr("y", -(labelHeight / 2))
+            .attr("width", destWidth + padding * 2)
+            .attr("height", labelHeight);
+        }
+      });
+
+    // Bring labels on top
+    labelLayer.raise();
+    arcLayer.on("mouseover", () => labelLayer.raise());
+
+  } catch (error) {
+    console.error("Error drawing map:", error);
+  }
+}
+
+  // Process the data coming in from the visualization
+  window.revealBridgeListener = {
+    dataReady: (incomingData) => {
+      console.log("Calling dataToJson: " + JSON.stringify(incomingData));
+      const processedData = dataToJson(incomingData);
+
+      // Validate that all required fields exist and have values
+      const hasValidData = processedData.every((record) => {
+        const requiredFields = {
+          "origin-longitude": record["origin-longitude"],
+          "origin-latitude": record["origin-latitude"],
+          "destination-longitude": record["destination-longitude"],
+          "destination-latitude": record["destination-latitude"],
+          "origin-name": record["origin-name"],
+          "origin-city": record["origin-city"],
+          "origin-state": record["origin-state"],
+          "destination-name": record["destination-name"],
+          "destination-city": record["destination-city"],
+          "destination-state": record["destination-state"],
+          OrderDate: record["OrderDate"],
+        };
+
+        // Check that each field exists and is not empty/null/undefined
+        return Object.entries(requiredFields).every(([field, value]) => {
+          const isValid =
+            value !== null &&
+            value !== undefined &&
+            value !== "" &&
+            !Number.isNaN(value);
+          if (!isValid) {
+            console.error(`Missing or invalid ${field} in record:`, record);
+          }
+          return isValid;
+        });
+      });
+
+      if (!hasValidData) {
+        console.error(
+          "Required data missing or invalid. Map drawing canceled."
+        );
+        return;
+      }
+
+      cities = [];
+      links = processedData.map((record) => {
+        cities.push({
+          name: `${record["origin-name"]}, ${record["origin-city"]}`,
+          lat: record["origin-latitude"],
+          lon: record["origin-longitude"],
+        });
+        cities.push({
+          name: `${record["destination-name"]}, ${record["destination-city"]}`,
+          lat: record["destination-latitude"],
+          lon: record["destination-longitude"],
+        });
+
+        return {
+          type: "LineString",
+          coordinates: [
+            [record["origin-longitude"], record["origin-latitude"]],
+            [record["destination-longitude"], record["destination-latitude"]],
+          ],
+          originName: record["origin-name"],
+          originCity: record["origin-city"],
+          originState: record["origin-state"],
+          destinationName: record["destination-name"],
+          destinationCity: record["destination-city"],
+          destinationState: record["destination-state"],
+          orderDate: record["OrderDate"],
+          ticketPrice: record["TicketPrice"] || 0,
+        };
+      });
+
+      console.log("All required data validated, proceeding to draw map");
+      drawMap();
+    },
+  };
+
+  // Add resize event listener
+  window.addEventListener("resize", _.debounce(handleResize, 250));
+
+  // Notify Reveal that the extension is ready
+  window.revealBridge.notifyExtensionIsReady();
+
+  // Initialize map if necessary, in this case, we need more data, so we ignore this
+  //drawMap();
+</script>

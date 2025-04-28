@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reveal Sdk - Custom D3 Map Visualization</title>
+  </head>
+
+  <body>
+    <div id="revealView" style="height: calc(100vh - 18px); width: 100%"></div>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
+    <script src="https://dl.revealbi.io/reveal/libs/1.7.3/infragistics.reveal.js"></script>
+
+    <script type="text/javascript">
+        $.ig.RevealSdkSettings.setBaseUrl("http://localhost:5111/");
+        // $.ig.RevealSdkSettings.setBaseUrl("https://localhost:7209/");
+
+        $.ig.RevealSdkSettings.enableActionsOnHoverTooltip = true;
+
+      var revealView = new $.ig.RevealView("#revealView");
+      revealView.interactiveFilteringEnabled = true;
+
+      //revealView.startInEditMode = true;
+
+      $.ig.RVDashboard.loadDashboard("Map_01").then((dashboard) => {
+        revealView.interactiveFilteringEnabled = true;
+        revealView.dashboard = dashboard;
+      });
+
+      revealView.onDataSourcesRequested = (callback) => {
+        var localFileItem = new $.ig.RVLocalFileDataSourceItem();
+        localFileItem.id = "LocalFileDataSource";
+
+        var excelDataSourceItem1 = new $.ig.RVExcelDataSourceItem(
+          localFileItem
+        );
+        excelDataSourceItem1.id = "Northwind Travel";
+        excelDataSourceItem1.title = "Northwind Travel";
+
+        callback(new $.ig.RevealDataSources([], [excelDataSourceItem1], true));
+      };
+
+      revealView.chartTypes.push({
+        title: "D3 Travel Map",
+        url: "d3map.html",
+        icon: "https://help.revealbi.io/img/logo.png",
+        groups: ["Custom Visualizations"],
+      });
+    </script>
+  </body>
+</html>

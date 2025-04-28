@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Data Grid - Reveal Visualization</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Load the Reveal Bridge - Required for Custom Visualizations -->
+<script src="reveal.bridge.js"></script>
+
+<!-- Load jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+    <style>
+        /* Apply Inter font globally */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100vh;
+        }
+        
+        /* Set border spacing for the table using standard CSS */
+        .patient-table {
+             border-collapse: separate; /* Must be separate for border-spacing */
+             border-spacing: 0 10px; /* 0 horizontal, 10px vertical */
+             width: 100%;
+        }
+        /* Ensure table cells take up full height if needed */
+        .patient-table td {
+            height: 100%;
+        }
+        .patient-name {
+            font-weight: 500;
+            color: #111827;
+        }
+        .patient-type {
+            font-size: 14px;
+            color: #6B7280;
+        }
+        .patient-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .info-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: #111827;
+        }
+        .info-label {
+            font-size: 14px;
+            color: #6B7280;
+        }
+        .pain-level-none {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+        .pain-level-medium {
+            background-color: #FEF3C7;
+            color: #92400E;
+        }
+        .pain-level-high {
+            background-color: #FEE2E2;
+            color: #B91C1C;
+        }
+        .pain-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .details-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            border: 1px solid #D1D5DB;
+            border-radius: 9999px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            background-color: white;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        .details-button:hover {
+            background-color: #F9FAFB;
+        }
+        .details-button:focus {
+            outline: none;
+            ring: 2px;
+            ring-offset: 2px;
+            ring-color: #6366F1;
+        }
+        .button-icon {
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+            background-color: #E5E7EB;
+            color: #4B5563;
+            border-radius: 2px;
+            padding: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div>
+    <table class="patient-table">
+        <tbody class="align-middle" id="patientTableBody">
+            <!-- Patient data rows will be inserted here dynamically -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+
+
+    // Process date to a more readable format
+    function formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        if (isNaN(date)) return dateStr; // Return original if parsing fails
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    // Get CSS class for pain level
+    function getPainLevelClass(painLevel) {
+        if (!painLevel) return '';
+        const pain = painLevel.toLowerCase();
+        if (pain === 'none') return 'pain-level-none';
+        if (pain === 'medium') return 'pain-level-medium';
+        if (pain === 'high') return 'pain-level-high';
+        if (pain === 'low') return 'pain-level-low';
+        return '';
+    }
+
+    // Create patient table row
+    function createPatientRow(patient) {
+
+        console.log("Patient ", patient)
+
+        // Create row element
+        const row = document.createElement('tr');
+        
+        // Patient image cell
+        const imageCell = document.createElement('td');
+        imageCell.className = 'p-4 w-16 rounded-l-lg border-t border-b border-l border-gray-200 bg-white';
+        
+        const img = document.createElement('img');
+        img.className = 'patient-image';
+        img.src = patient.patient_image || '/api/placeholder/40/40';
+        img.alt = patient.patient || 'Patient';
+        imageCell.appendChild(img);
+        
+        // Patient info cell
+        const infoCell = document.createElement('td');
+        infoCell.className = 'p-4 border-t border-b border-gray-200 bg-white';
+        
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'patient-name';
+        nameDiv.textContent = patient.patient || 'Unknown Patient';
+        
+        const typeDiv = document.createElement('div');
+        typeDiv.className = 'patient-type';
+        typeDiv.textContent = patient.patient_type || '';
+        
+        infoCell.appendChild(nameDiv);
+        infoCell.appendChild(typeDiv);
+        
+        // Date cell
+        const dateCell = document.createElement('td');
+        dateCell.className = 'p-4 whitespace-nowrap border-t border-b border-gray-200 bg-white';
+        
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'info-text';
+        dateDiv.textContent = formatDate(patient.date);
+        
+        dateCell.appendChild(dateDiv);
+        
+        // Visit reason cell
+        const reasonCell = document.createElement('td');
+        reasonCell.className = 'p-4 border-t border-b border-gray-200 bg-white';
+        
+        const reasonDiv = document.createElement('div');
+        reasonDiv.className = 'info-text';
+        reasonDiv.textContent = patient.visit_reason || 'N/A';
+        
+        const painDiv = document.createElement('div');
+        painDiv.className = 'mt-1';
+        
+        const painBadge = document.createElement('span');
+        painBadge.className = `pain-badge ${getPainLevelClass(patient.pain_level)}`;
+        painBadge.textContent = patient.pain_level ? 
+            patient.pain_level.charAt(0).toUpperCase() + patient.pain_level.slice(1) + ' ' : 
+            'No Pain Data';
+        
+        painDiv.appendChild(painBadge);
+        reasonCell.appendChild(reasonDiv);
+        reasonCell.appendChild(painDiv);
+        
+        // Details button cell
+        const actionCell = document.createElement('td');
+        actionCell.className = 'p-4 text-right w-40 rounded-r-lg border-t border-b border-r border-gray-200 bg-white';
+        
+        const detailsButton = document.createElement('button');
+        detailsButton.className = 'details-button';
+        detailsButton.innerHTML = `
+            <svg class="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            </svg>
+            Details
+        `;
+        detailsButton.onclick = () => showPatientDetails(patient);
+        actionCell.appendChild(detailsButton);
+        
+        // Add all cells to the row
+        row.appendChild(imageCell);
+        row.appendChild(infoCell);
+        row.appendChild(dateCell);
+        row.appendChild(reasonCell);
+        row.appendChild(actionCell);
+        
+        return row;
+    }
+
+    // Process the data from Reveal BI
+    function processRevealData(incomingData) {
+        try {
+            console.log("Processing data from Reveal");
+            
+            // Convert data to JSON format
+            const patientsData = dataToJson(incomingData);
+            if (!patientsData || patientsData.length === 0) {
+                console.warn("No data available after processing");
+                return;
+            }
+            
+            console.log("Patient data:", patientsData);
+            
+            // Get table body element
+            const tableBody = document.getElementById('patientTableBody');
+            tableBody.innerHTML = ''; // Clear existing content
+            
+            // Create a row for each patient
+            patientsData.forEach(patient => {
+                const row = createPatientRow(patient);
+                tableBody.appendChild(row);
+            });
+            
+        } catch (error) {
+            console.error("Error processing Reveal data:", error);
+        }
+    }
+
+    
+    function showPatientDetails(patient) {
+        const img = document.getElementById('modalPatientImage');
+        img.src = patient.patient_image || '/api/placeholder/150/150';
+        img.alt = patient.patient || 'Patient Image';
+
+    const detailsDiv = document.getElementById('patientDetails');
+        detailsDiv.innerHTML = `
+            <p><strong>Name:</strong> ${patient.patient || '-'}</p>
+            <p><strong>Type:</strong> ${patient.patient_type || '-'}</p>
+            <p><strong>Project Focus:</strong> ${patient.visit_reason || '-'}</p>
+            <p><strong>Date:</strong> ${formatDate(patient.date)}</p>
+            <p><strong>Project Risk:</strong> ${patient.pain_level || '-'}</p>
+            <p><strong>Staff Location:</strong> ${patient.hospital || '-'}</p>
+        `;
+
+        document.getElementById('modalOverlay').style.display = 'block';
+        document.getElementById('patientModal').style.display = 'block';
+    }
+
+
+    function closeModal() {
+        document.getElementById('modalOverlay').style.display = 'none';
+        document.getElementById('patientModal').style.display = 'none';
+    }
+
+    // Helper function to convert data from Reveal to JSON
+    function dataToJson(data) {
+        if (!data?.metadata?.columns) {
+            console.warn("Invalid data structure received");
+            return [];
+        }
+        const propertyNames = data.metadata.columns.map((col) => col.name);
+
+        if (!Array.isArray(data.data)) {
+            console.warn("Data is not an array");
+            return [];
+        }
+
+        const result = data.data.map((row) =>
+            row.reduce((acc, value, index) => {
+                acc[propertyNames[index]] = value;
+                return acc;
+            }, {})
+        );
+        return result;
+    }
+
+    // Reveal BI data ready event handler
+    window.revealBridgeListener = {
+        dataReady: (incomingData) => {
+        console.log("Data received from Reveal ", incomingData);
+        processRevealData(incomingData);
+        }
+    };
+
+    // Notify Reveal that the extension is ready
+    $(document).ready(function() {
+        window.revealBridge.notifyExtensionIsReady();
+    });
+
+
+  
+</script>
+
+<!-- Background Overlay -->
+<div id="modalOverlay" style="
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 9998;
+" onclick="closeModal()"></div>
+
+<!-- Patient Modal (FULL PAGE CENTERED) -->
+<div id="patientModal" style="
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  z-index: 9999;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+">
+  <div style="margin-bottom: 20px;">
+    <img id="modalPatientImage" src="" alt="Patient Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid #4F46E5;">
+  </div>
+  <div id="patientDetails" style="text-align: left; font-size: 16px; color: #333;"></div>
+  <div style="margin-top: 20px;">
+    <button onclick="closeModal()" style="padding: 8px 16px; background: #4F46E5; color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer;">
+      Close
+    </button>
+  </div>
+</div>
+
+
+
+</body>
+</html>

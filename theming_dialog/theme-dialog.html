@@ -1,0 +1,2109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reveal BI - Enhanced Theme Editor</title>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
+    <script src="https://dl.revealbi.io/reveal/libs/1.7.3/infragistics.reveal.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      :root {
+          --primary-color: #4a90e2;
+          --secondary-color: #f5f5f5;
+          --text-color: #333;
+          --border-radius: 8px;
+          --transition-speed: 0.3s;
+          --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          margin: 0;
+          padding: 0;
+          background-color: #f9f9f9;
+          color: var(--text-color);
+      }
+
+      .header {
+          background-color: #fff;
+          box-shadow: var(--shadow);
+          padding: 15px 20px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+      }
+
+      .logo {
+          font-size: 24px;
+          font-weight: bold;
+          color: var(--primary-color);
+      }
+
+      .controls {
+          display: flex;
+          gap: 15px;
+          align-items: center;
+      }
+
+      .theme-select {
+          padding: 8px 12px;
+          border-radius: var(--border-radius);
+          border: 1px solid #ddd;
+          background-color: white;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all var(--transition-speed);
+      }
+
+      .theme-select:hover {
+          border-color: var(--primary-color);
+      }
+
+      .settings-btn {
+          background-color: var(--primary-color);
+          color: white;
+          border: none;
+          border-radius: var(--border-radius);
+          padding: 8px 15px;
+          cursor: pointer;
+          transition: all var(--transition-speed);
+          display: flex;
+          align-items: center;
+          gap: 5px;
+      }
+
+      .settings-btn:hover {
+          background-color: #3a7bc8;
+      }
+
+      #revealView {
+          height: calc(100vh - 70px);
+          width: 100%;
+      }
+
+      /* Modal styles */
+      .modal {
+          display: none;
+          position: fixed;
+          z-index: 1000;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.4);
+          opacity: 0;
+          transition: opacity var(--transition-speed);
+      }
+
+      .modal.show {
+          opacity: 1;
+      }
+
+      .modal-content {
+          background-color: #fff;
+          margin: 5% auto;
+          width: 70%;
+          max-width: 800px;
+          border-radius: var(--border-radius);
+          box-shadow: var(--shadow);
+          transform: translateY(-20px);
+          transition: transform var(--transition-speed);
+          overflow: hidden;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+      }
+
+      .modal.show .modal-content {
+          transform: translateY(0);
+      }
+
+      .modal-header {
+          padding: 15px 20px;
+          border-bottom: 1px solid #eee;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+      }
+
+      .modal-title {
+          font-size: 20px;
+          font-weight: 600;
+          margin: 0;
+      }
+
+      .close {
+          font-size: 24px;
+          cursor: pointer;
+          color: #777;
+          transition: color var(--transition-speed);
+      }
+
+      .close:hover {
+          color: #333;
+      }
+
+      .modal-body {
+          padding: 20px;
+          overflow-y: auto;
+      }
+
+      .theme-preview {
+          background-color: #f5f5f5;
+          border-radius: var(--border-radius);
+          padding: 15px;
+          margin-bottom: 20px;
+          height: 150px;
+          position: relative;
+          overflow: hidden;
+          transition: all var(--transition-speed);
+      }
+
+      .preview-title {
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 10px;
+      }
+
+      .preview-chart {
+          height: 80%;
+          display: flex;
+          gap: 10px;
+          align-items: flex-end;
+      }
+
+      .chart-bar {
+          flex: 1;
+          transition: all var(--transition-speed);
+      }
+
+      .settings-container {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 20px;
+      }
+
+      .settings-section {
+          margin-bottom: 25px;
+      }
+
+      .section-title {
+          font-size: 16px;
+          font-weight: 600;
+          margin-bottom: 15px;
+          padding-bottom: 5px;
+          border-bottom: 1px solid #eee;
+      }
+
+      .setting-item {
+          margin-bottom: 15px;
+      }
+
+      .setting-label {
+          display: block;
+          margin-bottom: 5px;
+          font-size: 14px;
+      }
+
+      .setting-input {
+          width: 100%;
+          padding: 8px;
+          border-radius: 4px;
+          border: 1px solid #ddd;
+          transition: border var(--transition-speed);
+      }
+
+      .setting-input:focus {
+          outline: none;
+          border-color: var(--primary-color);
+      }
+
+      .color-input-container {
+          display: flex;
+          align-items: center;
+      }
+
+      .color-input {
+          -webkit-appearance: none;
+          width: 30px;
+          height: 30px;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          background: transparent;
+      }
+
+      .color-input::-webkit-color-swatch {
+          border-radius: 4px;
+          border: 1px solid #ddd;
+      }
+
+      .color-input-text {
+          flex: 1;
+          margin-left: 10px;
+      }
+
+      .checkbox-container {
+          display: flex;
+          align-items: center;
+      }
+
+      .checkbox-input {
+          margin-right: 10px;
+      }
+
+      .font-setting {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+      }
+
+      .font-family {
+          flex: 2;
+      }
+
+      .font-size {
+          flex: 1;
+      }
+
+      .modal-footer {
+          padding: 15px 20px;
+          border-top: 1px solid #eee;
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+      }
+
+      .btn {
+          padding: 8px 15px;
+          border-radius: var(--border-radius);
+          border: none;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all var(--transition-speed);
+      }
+
+      .btn-primary {
+          background-color: var(--primary-color);
+          color: white;
+      }
+
+      .btn-primary:hover {
+          background-color: #3a7bc8;
+      }
+
+      .btn-secondary {
+          background-color: #f1f1f1;
+          color: #333;
+      }
+
+      .btn-secondary:hover {
+          background-color: #e4e4e4;
+      }
+
+      .presets-container {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          gap: 15px;
+          margin-bottom: 20px;
+      }
+
+      .preset-card {
+          border-radius: var(--border-radius);
+          overflow: hidden;
+          cursor: pointer;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+          transition: all var(--transition-speed);
+      }
+
+      .preset-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .preset-header {
+          height: 80px;
+          display: flex;
+      }
+
+      .preset-color {
+          flex: 1;
+      }
+
+      .preset-footer {
+          padding: 10px;
+          text-align: center;
+          font-size: 13px;
+          background-color: white;
+      }
+
+      .preset-card.active {
+          outline: 2px solid var(--primary-color);
+      }
+
+      .chart-colors-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-bottom: 10px;
+      }
+
+      .chart-color-item {
+          position: relative;
+          width: 30px;
+          height: 30px;
+          border-radius: 4px;
+          cursor: pointer;
+      }
+
+      .chart-color-remove {
+          position: absolute;
+          top: -5px;
+          right: -5px;
+          width: 15px;
+          height: 15px;
+          background-color: #ff4e4e;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          font-size: 10px;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity var(--transition-speed);
+      }
+
+      .chart-color-item:hover .chart-color-remove {
+          opacity: 1;
+      }
+
+      .add-color-btn {
+          width: 30px;
+          height: 30px;
+          border-radius: 4px;
+          border: 1px dashed #999;
+          background-color: transparent;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          cursor: pointer;
+          transition: all var(--transition-speed);
+      }
+
+      .add-color-btn:hover {
+          border-color: var(--primary-color);
+          color: var(--primary-color);
+      }
+
+      .tabs {
+          display: flex;
+          margin-bottom: 20px;
+          border-bottom: 1px solid #eee;
+      }
+
+      .tab {
+          padding: 10px 15px;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          transition: all var(--transition-speed);
+      }
+
+      .tab.active {
+          border-bottom-color: var(--primary-color);
+          color: var(--primary-color);
+      }
+
+      .tab:hover:not(.active) {
+          background-color: #f5f5f5;
+      }
+
+      .tab-content {
+          display: none;
+      }
+
+      .tab-content.active {
+          display: block;
+      }
+
+      /* Add these styles for setting rows */
+      .setting-group {
+          border: 1px solid #eee;
+          border-radius: var(--border-radius);
+          padding: 10px;
+          margin-top: 5px;
+      }
+
+      .setting-row {
+          display: flex;
+          align-items: center;
+          margin-bottom: 10px;
+      }
+
+      .setting-row:last-child {
+          margin-bottom: 0;
+      }
+
+      .setting-sublabel {
+          width: 80px;
+          font-size: 13px;
+      }
+
+      /* Preview border styles */
+      .preview-with-border .chart-bar {
+          border: 1px solid #ccc;
+      }
+          position: relative;
+          display: inline-block;
+          margin-left: 5px;
+      }
+
+      .tooltip .tooltiptext {
+          visibility: hidden;
+          width: 200px;
+          background-color: #555;
+          color: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 5px;
+          position: absolute;
+          z-index: 1;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -100px;
+          opacity: 0;
+          transition: opacity var(--transition-speed);
+          font-size: 12px;
+          pointer-events: none;
+      }
+
+      .tooltip:hover .tooltiptext {
+          visibility: visible;
+          opacity: 1;
+      }
+
+      /* Add these styles for conditional formatting inputs */
+      .conditional-formatting-container {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+          margin-bottom: 15px;
+      }
+
+      .cf-label {
+          font-size: 12px;
+          margin-bottom: 5px;
+      }
+
+      @media (max-width: 768px) {
+          .settings-container {
+              grid-template-columns: 1fr;
+          }
+
+          .presets-container {
+              grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          }
+
+          .modal-content {
+              width: 95%;
+          }
+
+          .conditional-formatting-container {
+              grid-template-columns: 1fr;
+          }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="header">
+      <div class="logo"></div>
+      <div class="controls">
+        <select class="theme-select" id="themeSelector">
+          <option value="ml">Mountain Light</option>
+          <option value="md">Mountain Dark</option>
+          <option value="ol">Ocean Light</option>
+          <option value="od">Ocean Dark</option>
+          <option value="custom">Custom Theme</option>
+        </select>
+        <button class="settings-btn" id="openThemeModalBtn">
+          <i class="fas fa-cog"></i> Theme Settings
+        </button>
+      </div>
+    </div>
+
+    <div id="revealView"></div>
+
+    <div id="themeModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Theme Settings</h2>
+          <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div class="tabs">
+            <div class="tab active" data-tab="presets">Presets</div>
+            <div class="tab" data-tab="customize">Customize</div>
+          </div>
+
+          <div class="tab-content active" id="presets-tab">
+            <div class="presets-container" id="presetsContainer">
+              <!-- Preset cards will be generated here -->
+            </div>
+          </div>
+
+          <div class="tab-content" id="customize-tab">
+            <div class="theme-preview" id="themePreview">
+              <div class="preview-title">Theme Preview</div>
+              <div class="preview-chart" id="previewChart">
+                <!-- Preview bars will be generated here -->
+              </div>
+            </div>
+
+            <div class="settings-container">
+              <div class="settings-section">
+                <h3 class="section-title">Colors</h3>
+                <div class="setting-item">
+                  <label class="setting-label">
+                    Accent Color
+                    <span class="tooltip">
+                      <i class="fas fa-info-circle"></i>
+                      <span class="tooltiptext"
+                        >The default accent color used for buttons and
+                        interactive elements</span
+                      >
+                    </span>
+                  </label>
+                  <div class="color-input-container">
+                    <input
+                      type="color"
+                      id="accentColor"
+                      class="color-input"
+                      value="#4a90e2"
+                    />
+                    <input
+                      type="text"
+                      id="accentColorText"
+                      class="setting-input color-input-text"
+                      value="#4a90e2"
+                    />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">
+                    Font Color
+                    <span class="tooltip">
+                      <i class="fas fa-info-circle"></i>
+                      <span class="tooltiptext"
+                        >The color of the text throughout the dashboard</span
+                      >
+                    </span>
+                  </label>
+                  <div class="color-input-container">
+                    <input
+                      type="color"
+                      id="fontColor"
+                      class="color-input"
+                      value="#333333"
+                    />
+                    <input
+                      type="text"
+                      id="fontColorText"
+                      class="setting-input color-input-text"
+                      value="#333333"
+                    />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">
+                    Dashboard Background
+                    <span class="tooltip">
+                      <i class="fas fa-info-circle"></i>
+                      <span class="tooltiptext"
+                        >The main background color of the dashboard</span
+                      >
+                    </span>
+                  </label>
+                  <div class="color-input-container">
+                    <input
+                      type="color"
+                      id="dashboardBg"
+                      class="color-input"
+                      value="#ffffff"
+                    />
+                    <input
+                      type="text"
+                      id="dashboardBgText"
+                      class="setting-input color-input-text"
+                      value="#ffffff"
+                    />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">
+                    Visualization Background
+                    <span class="tooltip">
+                      <i class="fas fa-info-circle"></i>
+                      <span class="tooltiptext"
+                        >The secondary background color used for
+                        visualizations</span
+                      >
+                    </span>
+                  </label>
+                  <div class="color-input-container">
+                    <input
+                      type="color"
+                      id="visualizationBg"
+                      class="color-input"
+                      value="#f5f5f5"
+                    />
+                    <input
+                      type="text"
+                      id="visualizationBgText"
+                      class="setting-input color-input-text"
+                      value="#f5f5f5"
+                    />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">
+                    Highlight Color
+                    <span class="tooltip">
+                      <i class="fas fa-info-circle"></i>
+                      <span class="tooltiptext"
+                        >The highlighting color used in specific dashboard
+                        scenarios (forecast and outliers)</span
+                      >
+                    </span>
+                  </label>
+                  <div class="color-input-container">
+                    <input
+                      type="color"
+                      id="highlightColor"
+                      class="color-input"
+                      value="#ffdd57"
+                    />
+                    <input
+                      type="text"
+                      id="highlightColorText"
+                      class="setting-input color-input-text"
+                      value="#ffdd57"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3 class="section-title">
+                  Chart Colors
+                  <span class="tooltip">
+                    <i class="fas fa-info-circle"></i>
+                    <span class="tooltiptext"
+                      >The colors used to show data series in your
+                      visualizations</span
+                    >
+                  </span>
+                </h3>
+                <div class="chart-colors-container" id="chartColorsContainer">
+                  <!-- Chart colors will be generated here -->
+                </div>
+                <div class="add-color-btn" id="addChartColorBtn">
+                  <i class="fas fa-plus"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-container">
+              <div class="settings-section">
+                <h3 class="section-title">Conditional Formatting</h3>
+                <div class="conditional-formatting-container">
+                  <div>
+                    <div class="cf-label">Low Range</div>
+                    <div class="color-input-container">
+                      <input
+                        type="color"
+                        id="conditionalFormattingLow"
+                        class="color-input"
+                        value="#f8696b"
+                      />
+                      <input
+                        type="text"
+                        id="conditionalFormattingLowText"
+                        class="setting-input color-input-text"
+                        value="#f8696b"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div class="cf-label">Middle Range</div>
+                    <div class="color-input-container">
+                      <input
+                        type="color"
+                        id="conditionalFormattingMid"
+                        class="color-input"
+                        value="#ffeb84"
+                      />
+                      <input
+                        type="text"
+                        id="conditionalFormattingMidText"
+                        class="setting-input color-input-text"
+                        value="#ffeb84"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div class="cf-label">High Range</div>
+                    <div class="color-input-container">
+                      <input
+                        type="color"
+                        id="conditionalFormattingHigh"
+                        class="color-input"
+                        value="#63be7b"
+                      />
+                      <input
+                        type="text"
+                        id="conditionalFormattingHighText"
+                        class="setting-input color-input-text"
+                        value="#63be7b"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3 class="section-title">Typography</h3>
+                <div class="setting-item">
+                  <label class="setting-label">Regular Font</label>
+                  <div class="font-setting">
+                    <select
+                      id="regularFontFamily"
+                      class="setting-input font-family"
+                    >
+                      <option value="Segoe UI">Segoe UI</option>
+                      <option value="Arial">Arial</option>
+                      <option value="Roboto">Roboto</option>
+                      <option value="Helvetica">Helvetica</option>
+                      <option value="Open Sans">Open Sans</option>
+                    </select>
+                    <input
+                      type="number"
+                      id="regularFontSize"
+                      class="setting-input font-size"
+                      value="14"
+                      min="8"
+                      max="24"
+                    />
+                  </div>
+                </div>
+                <div class="setting-item">
+                  <label class="setting-label">Medium Font</label>
+                  <div class="font-setting">
+                    <select
+                      id="mediumFontFamily"
+                      class="setting-input font-family"
+                    >
+                      <option value="Segoe UI">Segoe UI</option>
+                      <option value="Arial">Arial</option>
+                      <option value="Roboto">Roboto</option>
+                      <option value="Helvetica">Helvetica</option>
+                      <option value="Open Sans">Open Sans</option>
+                    </select>
+                    <input
+                      type="number"
+                      id="mediumFontSize"
+                      class="setting-input font-size"
+                      value="14"
+                      min="8"
+                      max="24"
+                    />
+                  </div>
+                </div>
+                <div class="setting-item">
+                  <label class="setting-label">Bold Font</label>
+                  <div class="font-setting">
+                    <select
+                      id="boldFontFamily"
+                      class="setting-input font-family"
+                    >
+                      <option value="Segoe UI">Segoe UI</option>
+                      <option value="Arial">Arial</option>
+                      <option value="Roboto">Roboto</option>
+                      <option value="Helvetica">Helvetica</option>
+                      <option value="Open Sans">Open Sans</option>
+                    </select>
+                    <input
+                      type="number"
+                      id="boldFontSize"
+                      class="setting-input font-size"
+                      value="14"
+                      min="8"
+                      max="24"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-container">
+              <div class="settings-section">
+                <h3 class="section-title">Layout</h3>
+                <div class="setting-item">
+                  <label class="setting-label">
+                    Visualization Margin (px)
+                    <span class="tooltip">
+                      <i class="fas fa-info-circle"></i>
+                      <span class="tooltiptext"
+                        >Sets the margin size in pixels between
+                        visualizations</span
+                      >
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    id="visualizationMargin"
+                    class="setting-input"
+                    value="10"
+                    min="0"
+                    max="50"
+                  />
+                </div>
+                <div class="setting-item">
+                  <div class="checkbox-container">
+                    <input
+                      type="checkbox"
+                      id="useRoundedCorners"
+                      class="checkbox-input"
+                      checked
+                    />
+                    <label class="setting-label">
+                      Use Rounded Corners
+                      <span class="tooltip">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltiptext"
+                          >Enables rounded corners in buttons, tooltips,
+                          containers, and visualizations</span
+                        >
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <div class="setting-item">
+                  <label class="setting-label">
+                    Visualization Border
+                    <span class="tooltip">
+                      <i class="fas fa-info-circle"></i>
+                      <span class="tooltiptext"
+                        >Adds a border around visualizations</span
+                      >
+                    </span>
+                  </label>
+                  <div class="setting-group">
+                    <div class="setting-row">
+                      <label class="setting-sublabel">Width (px)</label>
+                      <input
+                        type="number"
+                        id="borderWidth"
+                        class="setting-input"
+                        value="1"
+                        min="0"
+                        max="10"
+                      />
+                    </div>
+                    <div class="setting-row">
+                      <label class="setting-sublabel">Color</label>
+                      <div class="color-input-container">
+                        <input
+                          type="color"
+                          id="borderColor"
+                          class="color-input"
+                          value="#cccccc"
+                        />
+                        <input
+                          type="text"
+                          id="borderColorText"
+                          class="setting-input color-input-text"
+                          value="#cccccc"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary">Cancel</button>
+          <button class="btn btn-primary">Apply Theme</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Initialize when page loads -->
+    <script>
+      // Initialize Reveal SDK
+      $.ig.RevealSdkSettings.setBaseUrl(
+        "http://localhost:5111/"
+      );
+      let revealView;
+
+      // Load dashboard
+      $.ig.RVDashboard.loadDashboard("Orders Analysis").then((dashboard) => {
+        revealView = new $.ig.RevealView("#revealView");
+        revealView.dashboard = dashboard;
+      });
+
+      // Theme presets
+      const themePresets = [
+        {
+          name: "Mountain Light",
+          key: "ml",
+          type: "built-in",
+          colors: [
+            "#4a90e2",
+            "#27ae60",
+            "#f39c12",
+            "#e74c3c",
+            "#9b59b6",
+            "#1abc9c",
+          ],
+        },
+        {
+          name: "Mountain Dark",
+          key: "md",
+          type: "built-in",
+          colors: [
+            "#4a90e2",
+            "#27ae60",
+            "#f39c12",
+            "#e74c3c",
+            "#9b59b6",
+            "#1abc9c",
+          ],
+        },
+        {
+          name: "Ocean Light",
+          key: "ol",
+          type: "built-in",
+          colors: [
+            "#00b4db",
+            "#7cc576",
+            "#f8a13f",
+            "#f16a43",
+            "#8362a7",
+            "#00bfa5",
+          ],
+        },
+        {
+          name: "Ocean Dark",
+          key: "od",
+          type: "built-in",
+          colors: [
+            "#00b4db",
+            "#7cc576",
+            "#f8a13f",
+            "#f16a43",
+            "#8362a7",
+            "#00bfa5",
+          ],
+        },
+        {
+          name: "Corporate",
+          key: "corporate",
+          accentColor: "#1e88e5",
+          fontColor: "#333333",
+          dashboardBg: "#ffffff",
+          visualizationBg: "#f7f7f7",
+          highlightColor: "#4caf50",
+          chartColors: [
+            "#1e88e5",
+            "#5e35b1",
+            "#43a047",
+            "#fb8c00",
+            "#e53935",
+            "#00acc1",
+            "#3949ab",
+            "#8e24aa",
+          ],
+          conditionalFormatting: {
+            low: "#ef5350",
+            mid: "#ffca28",
+            high: "#66bb6a",
+          },
+          useRoundedCorners: true,
+          border: {
+            width: 1,
+            color: "#e0e0e0",
+          },
+        },
+        {
+          name: "Vintage",
+          key: "vintage",
+          accentColor: "#9c6644",
+          fontColor: "#5d4037",
+          dashboardBg: "#f5f5dc",
+          visualizationBg: "#f9f3e8",
+          highlightColor: "#c88940",
+          chartColors: [
+            "#8d6e63",
+            "#a1887f",
+            "#6d4c41",
+            "#5d4037",
+            "#4e342e",
+            "#3e2723",
+            "#d7ccc8",
+            "#bcaaa4",
+          ],
+          conditionalFormatting: {
+            low: "#be9c91",
+            mid: "#d7ccc8",
+            high: "#8d6e63",
+          },
+          useRoundedCorners: false,
+          border: {
+            width: 1,
+            color: "#bcaaa4",
+          },
+        },
+        {
+          name: "Nightfall",
+          key: "nightfall",
+          accentColor: "#5c6bc0",
+          fontColor: "#e0e0e0",
+          dashboardBg: "#263238",
+          visualizationBg: "#37474f",
+          highlightColor: "#7986cb",
+          chartColors: [
+            "#5c6bc0",
+            "#26a69a",
+            "#ffa726",
+            "#ef5350",
+            "#ab47bc",
+            "#66bb6a",
+            "#ec407a",
+            "#29b6f6",
+          ],
+          conditionalFormatting: {
+            low: "#ef5350",
+            mid: "#ffee58",
+            high: "#66bb6a",
+          },
+          useRoundedCorners: true,
+          border: {
+            width: 1,
+            color: "#455a64",
+          },
+        },
+        {
+          name: "Pastel",
+          key: "pastel",
+          accentColor: "#81c784",
+          fontColor: "#455a64",
+          dashboardBg: "#ffffff",
+          visualizationBg: "#f5f5f5",
+          highlightColor: "#9fa8da",
+          chartColors: [
+            "#81c784",
+            "#9fa8da",
+            "#ffe082",
+            "#ef9a9a",
+            "#ce93d8",
+            "#80deea",
+            "#c5e1a5",
+            "#f48fb1",
+          ],
+          conditionalFormatting: {
+            low: "#ef9a9a",
+            mid: "#ffe082",
+            high: "#a5d6a7",
+          },
+          useRoundedCorners: true,
+          border: {
+            width: 1,
+            color: "#e0e0e0",
+          },
+        },
+        {
+          name: "Monochrome",
+          key: "monochrome",
+          accentColor: "#424242",
+          fontColor: "#212121",
+          dashboardBg: "#ffffff",
+          visualizationBg: "#f5f5f5",
+          highlightColor: "#757575",
+          chartColors: [
+            "#212121",
+            "#424242",
+            "#616161",
+            "#757575",
+            "#9e9e9e",
+            "#bdbdbd",
+            "#e0e0e0",
+            "#eeeeee",
+          ],
+          conditionalFormatting: {
+            low: "#9e9e9e",
+            mid: "#bdbdbd",
+            high: "#424242",
+          },
+          useRoundedCorners: false,
+          border: {
+            width: 1,
+            color: "#bdbdbd",
+          },
+        },
+        {
+          name: "Vibrant",
+          key: "vibrant",
+          accentColor: "#ff4081",
+          fontColor: "#212121",
+          dashboardBg: "#ffffff",
+          visualizationBg: "#f5f5f5",
+          highlightColor: "#ff9100",
+          chartColors: [
+            "#ff4081",
+            "#ff9100",
+            "#00bcd4",
+            "#8bc34a",
+            "#9c27b0",
+            "#3f51b5",
+            "#009688",
+            "#ffeb3b",
+          ],
+          conditionalFormatting: {
+            low: "#f44336",
+            mid: "#ffeb3b",
+            high: "#4caf50",
+          },
+          useRoundedCorners: true,
+          border: {
+            width: 2,
+            color: "#e0e0e0",
+          },
+        },
+      ];
+
+      // Chart colors for the custom theme
+      let chartColors = [
+        "#4a90e2",
+        "#27ae60",
+        "#f39c12",
+        "#e74c3c",
+        "#9b59b6",
+        "#1abc9c",
+      ];
+      let currentPreset = null;
+
+      // Function to handle theme selection
+      function onThemeSelected(theme) {
+        if (theme === "custom") {
+          openThemeModal();
+          return;
+        }
+
+        let selectedTheme;
+        switch (theme) {
+          case "ml":
+            selectedTheme = new $.ig.MountainLightTheme();
+            break;
+          case "md":
+            selectedTheme = new $.ig.MountainDarkTheme();
+            break;
+          case "ol":
+            selectedTheme = new $.ig.OceanLightTheme();
+            break;
+          case "od":
+            selectedTheme = new $.ig.OceanDarkTheme();
+            break;
+          default:
+            // Custom preset themes
+            const preset = themePresets.find((p) => p.key === theme);
+            if (preset && preset.type !== "built-in") {
+              selectedTheme = createThemeFromPreset(preset);
+
+              // Also apply the border for custom presets
+              if (preset.border) {
+                applyBorderFromPreset(preset.border);
+              }
+            } else {
+              selectedTheme = new $.ig.MountainLightTheme();
+            }
+        }
+
+        $.ig.RevealSdkSettings.theme = selectedTheme;
+        revealView.refreshTheme();
+      }
+
+      // Function to apply border from a preset
+      function applyBorderFromPreset(border) {
+        if (!border) return;
+
+        // Remove any existing border style
+        const existingStyle = document.getElementById("revealBorderStyle");
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+
+        // Create and apply new style if there's a border width
+        if (border.width > 0) {
+          const style = document.createElement("style");
+          style.id = "revealBorderStyle";
+          style.textContent = `
+                    [id^="VisualizationBgColor_"] {
+                        border: ${border.width}px solid ${border.color};
+                    }
+                `;
+          document.head.appendChild(style);
+        }
+      }
+
+      // Function to create a theme from a preset
+      function createThemeFromPreset(preset) {
+        const theme = new $.ig.RevealTheme();
+
+        try {
+          // Apply colors - make sure to set as strings
+          if (preset.accentColor)
+            theme.accentColor = preset.accentColor.toString();
+          if (preset.fontColor) theme.fontColor = preset.fontColor.toString();
+          if (preset.dashboardBg)
+            theme.dashboardBackgroundColor = preset.dashboardBg.toString();
+          if (preset.visualizationBg)
+            theme.visualizationBackgroundColor =
+              preset.visualizationBg.toString();
+          if (preset.highlightColor)
+            theme.highlightColor = preset.highlightColor.toString();
+
+          // Apply chart colors - make sure they're all strings
+          if (preset.chartColors && preset.chartColors.length > 0) {
+            theme.chartColors = preset.chartColors.map((color) =>
+              color.toString()
+            );
+          }
+
+          // Apply conditional formatting
+          if (preset.conditionalFormatting) {
+            theme.conditionalFormatting = {
+              lowColor: preset.conditionalFormatting.low.toString(),
+              middleColor: preset.conditionalFormatting.mid.toString(),
+              highColor: preset.conditionalFormatting.high.toString(),
+            };
+          }
+
+          if (preset.useRoundedCorners !== undefined) {
+            theme.useRoundedCorners = preset.useRoundedCorners;
+          }
+
+          return theme;
+        } catch (error) {
+          console.error("Error creating theme from preset:", error);
+          return new $.ig.MountainLightTheme(); // Fallback to default theme
+        }
+      }
+
+      // Function to open the theme modal
+      function openThemeModal() {
+        const modal = document.getElementById("themeModal");
+        modal.style.display = "block";
+        setTimeout(() => {
+          modal.classList.add("show");
+        }, 10);
+
+        // Initialize chart preview
+        initializeChartPreview();
+
+        // Generate preset cards
+        generatePresetCards();
+
+        // Initialize chart colors
+        initializeChartColors();
+
+        // Initialize color inputs with current theme
+        initializeThemeInputs();
+      }
+
+      // Function to close the theme modal
+      function closeThemeModal() {
+        const modal = document.getElementById("themeModal");
+        modal.classList.remove("show");
+        setTimeout(() => {
+          modal.style.display = "none";
+        }, 300);
+      }
+
+      // Function to apply the custom theme
+      function applyCustomTheme() {
+        const theme = new $.ig.RevealTheme();
+
+        // Apply colors - make sure to set as strings
+        theme.accentColor = document
+          .getElementById("accentColor")
+          .value.toString();
+        theme.fontColor = document.getElementById("fontColor").value.toString();
+        theme.dashboardBackgroundColor = document
+          .getElementById("dashboardBg")
+          .value.toString();
+        theme.visualizationBackgroundColor = document
+          .getElementById("visualizationBg")
+          .value.toString();
+        theme.highlightColor = document
+          .getElementById("highlightColor")
+          .value.toString();
+
+        // Apply chart colors - make sure they're all strings
+        theme.chartColors = chartColors.map((color) => color.toString());
+
+        // Apply conditional formatting
+        theme.conditionalFormatting = {
+          lowColor: document
+            .getElementById("conditionalFormattingLow")
+            .value.toString(),
+          middleColor: document
+            .getElementById("conditionalFormattingMid")
+            .value.toString(),
+          highColor: document
+            .getElementById("conditionalFormattingHigh")
+            .value.toString(),
+        };
+
+        // The Reveal API might expect a specific font object format
+        // Let's try setting these properties with caution
+        try {
+          const regularFontFamily =
+            document.getElementById("regularFontFamily").value;
+          const regularFontSize = parseInt(
+            document.getElementById("regularFontSize").value,
+            10
+          );
+          // Try to set as separate properties if the object approach doesn't work
+          theme.regularFontFamily = regularFontFamily.toString();
+          theme.regularFontSize = regularFontSize;
+
+          const mediumFontFamily =
+            document.getElementById("mediumFontFamily").value;
+          const mediumFontSize = parseInt(
+            document.getElementById("mediumFontSize").value,
+            10
+          );
+          theme.mediumFontFamily = mediumFontFamily.toString();
+          theme.mediumFontSize = mediumFontSize;
+
+          const boldFontFamily =
+            document.getElementById("boldFontFamily").value;
+          const boldFontSize = parseInt(
+            document.getElementById("boldFontSize").value,
+            10
+          );
+          theme.boldFontFamily = boldFontFamily.toString();
+          theme.boldFontSize = boldFontSize;
+        } catch (error) {
+          console.error("Error setting font properties:", error);
+        }
+
+        // Apply layout settings
+        theme.visualizationMargin = parseInt(
+          document.getElementById("visualizationMargin").value,
+          10
+        );
+        theme.useRoundedCorners =
+          document.getElementById("useRoundedCorners").checked;
+
+        try {
+          // Apply theme
+          $.ig.RevealSdkSettings.theme = theme;
+          revealView.refreshTheme();
+
+          // Apply custom CSS for border (this cannot be set through the theme object)
+          applyVisualizationBorder();
+
+          // Update the selector to custom
+          document.getElementById("themeSelector").value = "custom";
+
+          closeThemeModal();
+        } catch (error) {
+          console.error("Error applying theme:", error);
+          alert(
+            "There was an error applying the theme. Please check the console for details."
+          );
+        }
+      }
+
+      // Function to apply visualization border using CSS
+      function applyVisualizationBorder() {
+        // Remove any existing border style
+        const existingStyle = document.getElementById("revealBorderStyle");
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+
+        // Get border settings
+        const borderWidth = document.getElementById("borderWidth").value;
+        const borderColor = document.getElementById("borderColor").value;
+
+        // Create and apply new style
+        if (borderWidth > 0) {
+          const style = document.createElement("style");
+          style.id = "revealBorderStyle";
+          style.textContent = `
+                    [id^="VisualizationBgColor_"] {
+                        border: ${borderWidth}px solid ${borderColor};
+                    }
+                `;
+          document.head.appendChild(style);
+        }
+      }
+
+      // Function to initialize chart preview
+      function initializeChartPreview() {
+        const previewChart = document.getElementById("previewChart");
+        previewChart.innerHTML = "";
+
+        // Create bars
+        for (let i = 0; i < Math.min(chartColors.length, 5); i++) {
+          const height = 30 + Math.floor(Math.random() * 50);
+          const bar = document.createElement("div");
+          bar.className = "chart-bar";
+          bar.style.height = height + "%";
+          bar.style.backgroundColor = chartColors[i];
+          previewChart.appendChild(bar);
+        }
+      }
+
+      // Function to initialize chart colors
+      function initializeChartColors() {
+        const container = document.getElementById("chartColorsContainer");
+        container.innerHTML = "";
+
+        // Add color items
+        chartColors.forEach((color, index) => {
+          const colorItem = document.createElement("div");
+          colorItem.className = "chart-color-item";
+          colorItem.style.backgroundColor = color;
+          colorItem.dataset.index = index;
+
+          // Add remove button if more than one color
+          if (chartColors.length > 1) {
+            const removeBtn = document.createElement("div");
+            removeBtn.className = "chart-color-remove";
+            removeBtn.innerHTML = "×";
+            removeBtn.dataset.index = index;
+            colorItem.appendChild(removeBtn);
+          }
+
+          container.appendChild(colorItem);
+        });
+
+        // Add click handlers for colors
+        container.querySelectorAll(".chart-color-item").forEach((item) => {
+          item.addEventListener("click", function () {
+            editChartColor(parseInt(this.dataset.index, 10));
+          });
+        });
+
+        // Add click handlers for remove buttons
+        container.querySelectorAll(".chart-color-remove").forEach((btn) => {
+          btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            removeChartColor(parseInt(this.dataset.index, 10));
+          });
+        });
+
+        // Set up add color button
+        const addColorBtn = document.getElementById("addChartColorBtn");
+        if (addColorBtn) {
+          addColorBtn.onclick = addChartColor;
+        }
+      }
+
+      // Function to edit a chart color
+      function editChartColor(index) {
+        // Create color picker
+        const colorPicker = document.createElement("input");
+        colorPicker.type = "color";
+        colorPicker.value = chartColors[index];
+        colorPicker.style.position = "absolute";
+        colorPicker.style.left = "-9999px";
+        document.body.appendChild(colorPicker);
+
+        // Open color picker
+        colorPicker.click();
+
+        // Handle color change
+        colorPicker.addEventListener("change", () => {
+          chartColors[index] = colorPicker.value;
+          initializeChartColors();
+          initializeChartPreview();
+          document.body.removeChild(colorPicker);
+        });
+      }
+
+      // Function to add a chart color
+      function addChartColor() {
+        // Generate a random color
+        const randomColor =
+          "#" +
+          Math.floor(Math.random() * 16777215)
+            .toString(16)
+            .padStart(6, "0");
+        chartColors.push(randomColor);
+        initializeChartColors();
+        initializeChartPreview();
+      }
+
+      // Function to remove a chart color
+      function removeChartColor(index) {
+        if (chartColors.length > 1) {
+          chartColors.splice(index, 1);
+          initializeChartColors();
+          initializeChartPreview();
+        }
+      }
+
+      // Function to initialize theme inputs
+      function initializeThemeInputs() {
+        try {
+          // Get current theme
+          const theme = $.ig.RevealSdkSettings.theme;
+
+          // Set default values first
+          const defaultValues = {
+            accentColor: "#4a90e2",
+            fontColor: "#333333",
+            dashboardBg: "#ffffff",
+            visualizationBg: "#f5f5f5",
+            highlightColor: "#ffdd57",
+            conditionalFormattingLow: "#f8696b",
+            conditionalFormattingMid: "#ffeb84",
+            conditionalFormattingHigh: "#63be7b",
+            visualizationMargin: 10,
+            useRoundedCorners: true,
+            borderWidth: 1,
+            borderColor: "#cccccc",
+          };
+
+          // Helper function to safely set color inputs
+          function safelySetColorInput(id, value, defaultValue) {
+            try {
+              if (value && typeof value === "string") {
+                document.getElementById(id).value = value;
+                document.getElementById(id + "Text").value = value;
+              } else {
+                document.getElementById(id).value = defaultValue;
+                document.getElementById(id + "Text").value = defaultValue;
+              }
+            } catch (e) {
+              console.error(`Error setting ${id}:`, e);
+            }
+          }
+
+          // Set color inputs
+          safelySetColorInput(
+            "accentColor",
+            theme.accentColor,
+            defaultValues.accentColor
+          );
+          safelySetColorInput(
+            "fontColor",
+            theme.fontColor,
+            defaultValues.fontColor
+          );
+          safelySetColorInput(
+            "dashboardBg",
+            theme.dashboardBackgroundColor,
+            defaultValues.dashboardBg
+          );
+          safelySetColorInput(
+            "visualizationBg",
+            theme.visualizationBackgroundColor,
+            defaultValues.visualizationBg
+          );
+          safelySetColorInput(
+            "highlightColor",
+            theme.highlightColor,
+            defaultValues.highlightColor
+          );
+
+          // Set chart colors
+          if (
+            theme.chartColors &&
+            Array.isArray(theme.chartColors) &&
+            theme.chartColors.length > 0
+          ) {
+            chartColors = [...theme.chartColors];
+          }
+          initializeChartColors();
+          initializeChartPreview();
+
+          // Set conditional formatting
+          if (theme.conditionalFormatting) {
+            safelySetColorInput(
+              "conditionalFormattingLow",
+              theme.conditionalFormatting.lowColor,
+              defaultValues.conditionalFormattingLow
+            );
+
+            safelySetColorInput(
+              "conditionalFormattingMid",
+              theme.conditionalFormatting.middleColor,
+              defaultValues.conditionalFormattingMid
+            );
+
+            safelySetColorInput(
+              "conditionalFormattingHigh",
+              theme.conditionalFormatting.highColor,
+              defaultValues.conditionalFormattingHigh
+            );
+          }
+
+          // Safely set font values
+          try {
+            // For regularFont
+            if (theme.regularFontFamily) {
+              document.getElementById("regularFontFamily").value =
+                theme.regularFontFamily;
+            }
+            if (theme.regularFontSize) {
+              document.getElementById("regularFontSize").value =
+                theme.regularFontSize;
+            }
+
+            // For mediumFont
+            if (theme.mediumFontFamily) {
+              document.getElementById("mediumFontFamily").value =
+                theme.mediumFontFamily;
+            }
+            if (theme.mediumFontSize) {
+              document.getElementById("mediumFontSize").value =
+                theme.mediumFontSize;
+            }
+
+            // For boldFont
+            if (theme.boldFontFamily) {
+              document.getElementById("boldFontFamily").value =
+                theme.boldFontFamily;
+            }
+            if (theme.boldFontSize) {
+              document.getElementById("boldFontSize").value =
+                theme.boldFontSize;
+            }
+          } catch (e) {
+            console.error("Error setting font values:", e);
+          }
+
+          // Set layout settings
+          try {
+            if (theme.visualizationMargin !== undefined) {
+              document.getElementById("visualizationMargin").value =
+                theme.visualizationMargin;
+            } else {
+              document.getElementById("visualizationMargin").value =
+                defaultValues.visualizationMargin;
+            }
+
+            if (theme.useRoundedCorners !== undefined) {
+              document.getElementById("useRoundedCorners").checked =
+                theme.useRoundedCorners;
+            } else {
+              document.getElementById("useRoundedCorners").checked =
+                defaultValues.useRoundedCorners;
+            }
+          } catch (e) {
+            console.error("Error setting layout values:", e);
+          }
+
+          // Check for border style in the DOM
+          try {
+            const existingStyle = document.getElementById("revealBorderStyle");
+            if (existingStyle) {
+              // Try to extract the border width and color from the style element
+              const styleText = existingStyle.textContent;
+              const borderWidthMatch = styleText.match(/border:\s*(\d+)px/);
+              const borderColorMatch = styleText.match(
+                /border:.*?\s+(\#[a-fA-F0-9]{3,6}|\w+)/
+              );
+
+              if (borderWidthMatch && borderWidthMatch[1]) {
+                document.getElementById("borderWidth").value =
+                  borderWidthMatch[1];
+              } else {
+                document.getElementById("borderWidth").value =
+                  defaultValues.borderWidth;
+              }
+
+              if (borderColorMatch && borderColorMatch[1]) {
+                safelySetColorInput(
+                  "borderColor",
+                  borderColorMatch[1],
+                  defaultValues.borderColor
+                );
+              } else {
+                safelySetColorInput(
+                  "borderColor",
+                  defaultValues.borderColor,
+                  defaultValues.borderColor
+                );
+              }
+            } else {
+              // No border style found, set defaults
+              document.getElementById("borderWidth").value =
+                defaultValues.borderWidth;
+              safelySetColorInput(
+                "borderColor",
+                defaultValues.borderColor,
+                defaultValues.borderColor
+              );
+            }
+          } catch (e) {
+            console.error("Error setting border values:", e);
+            document.getElementById("borderWidth").value =
+              defaultValues.borderWidth;
+            safelySetColorInput(
+              "borderColor",
+              defaultValues.borderColor,
+              defaultValues.borderColor
+            );
+          }
+        } catch (error) {
+          console.error("Error initializing theme inputs:", error);
+        }
+      }
+
+      // Function to generate preset cards
+      function generatePresetCards() {
+        const container = document.getElementById("presetsContainer");
+        container.innerHTML = "";
+
+        themePresets.forEach((preset) => {
+          const card = document.createElement("div");
+          card.className = "preset-card";
+          card.dataset.preset = preset.key;
+
+          // Create header with color swatches
+          const header = document.createElement("div");
+          header.className = "preset-header";
+
+          // Show first 4 chart colors or primary colors
+          const colors = preset.chartColors || preset.colors || [];
+          for (let i = 0; i < Math.min(colors.length, 4); i++) {
+            const colorDiv = document.createElement("div");
+            colorDiv.className = "preset-color";
+            colorDiv.style.backgroundColor = colors[i];
+            header.appendChild(colorDiv);
+          }
+
+          // Create footer with name
+          const footer = document.createElement("div");
+          footer.className = "preset-footer";
+          footer.textContent = preset.name;
+
+          // Add to card
+          card.appendChild(header);
+          card.appendChild(footer);
+
+          container.appendChild(card);
+        });
+
+        // Add click handlers to all cards after they're created
+        container.querySelectorAll(".preset-card").forEach((card) => {
+          card.addEventListener("click", function () {
+            const presetKey = this.dataset.preset;
+            const preset = themePresets.find((p) => p.key === presetKey);
+
+            if (preset) {
+              // Remove active class from all cards
+              document.querySelectorAll(".preset-card").forEach((c) => {
+                c.classList.remove("active");
+              });
+
+              // Add active class to selected card
+              this.classList.add("active");
+
+              // Apply preset
+              applyPreset(preset);
+            }
+          });
+        });
+      }
+
+      // Function to apply a preset
+      function applyPreset(preset) {
+        try {
+          currentPreset = preset;
+
+          if (preset.type === "built-in") {
+            // For built-in themes, just select it in the dropdown
+            document.getElementById("themeSelector").value = preset.key;
+            onThemeSelected(preset.key);
+            closeThemeModal();
+            return;
+          }
+
+          // Helper function to safely set color inputs
+          function safelySetColorInput(id, value) {
+            try {
+              if (value && typeof value === "string") {
+                document.getElementById(id).value = value;
+                document.getElementById(id + "Text").value = value;
+              }
+            } catch (e) {
+              console.error(`Error setting ${id} from preset:`, e);
+            }
+          }
+
+          // For custom presets, set the values in the form
+          safelySetColorInput("accentColor", preset.accentColor);
+          safelySetColorInput("fontColor", preset.fontColor);
+          safelySetColorInput("dashboardBg", preset.dashboardBg);
+          safelySetColorInput("visualizationBg", preset.visualizationBg);
+          safelySetColorInput("highlightColor", preset.highlightColor);
+
+          // Set chart colors
+          if (
+            preset.chartColors &&
+            Array.isArray(preset.chartColors) &&
+            preset.chartColors.length > 0
+          ) {
+            chartColors = [...preset.chartColors];
+            initializeChartColors();
+          }
+
+          // Set conditional formatting
+          if (preset.conditionalFormatting) {
+            safelySetColorInput(
+              "conditionalFormattingLow",
+              preset.conditionalFormatting.low
+            );
+            safelySetColorInput(
+              "conditionalFormattingMid",
+              preset.conditionalFormatting.mid
+            );
+            safelySetColorInput(
+              "conditionalFormattingHigh",
+              preset.conditionalFormatting.high
+            );
+          }
+
+          // Set layout setting
+          if (preset.useRoundedCorners !== undefined) {
+            document.getElementById("useRoundedCorners").checked =
+              preset.useRoundedCorners;
+          }
+
+          // Set border settings
+          if (preset.border) {
+            if (preset.border.width !== undefined) {
+              document.getElementById("borderWidth").value =
+                preset.border.width;
+            }
+            if (preset.border.color) {
+              safelySetColorInput("borderColor", preset.border.color);
+            }
+          }
+
+          // Update preview
+          initializeChartPreview();
+          updatePreview();
+        } catch (error) {
+          console.error("Error applying preset:", error);
+        }
+      }
+      // Set up tabs
+      document.querySelectorAll(".tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          // Remove active class from all tabs
+          document.querySelectorAll(".tab").forEach((t) => {
+            t.classList.remove("active");
+          });
+
+          // Add active class to clicked tab
+          tab.classList.add("active");
+
+          // Hide all tab contents
+          document.querySelectorAll(".tab-content").forEach((content) => {
+            content.classList.remove("active");
+          });
+
+          // Show the selected tab content
+          const tabContent = document.getElementById(tab.dataset.tab + "-tab");
+          if (tabContent) {
+            tabContent.classList.add("active");
+          }
+        });
+      });
+
+      // Link color input with text input
+      const colorInputs = document.querySelectorAll(".color-input");
+      colorInputs.forEach((input) => {
+        const textInput = document.getElementById(input.id + "Text");
+        if (textInput) {
+          // Update text when color changes
+          input.addEventListener("input", () => {
+            textInput.value = input.value;
+            updatePreview();
+          });
+
+          // Update color when text changes
+          textInput.addEventListener("input", () => {
+            // Check if valid hex color
+            if (/^#[0-9A-F]{6}$/i.test(textInput.value)) {
+              input.value = textInput.value;
+              updatePreview();
+            }
+          });
+        }
+      });
+
+      // Update preview when inputs change
+      function updatePreview() {
+        const previewChart = document.getElementById("previewChart");
+        const themePreview = document.getElementById("themePreview");
+        const visualizationBg =
+          document.getElementById("visualizationBg").value;
+
+        // Update preview background
+        themePreview.style.backgroundColor = visualizationBg;
+
+        // Update preview text color
+        themePreview.style.color = document.getElementById("fontColor").value;
+
+        // Update chart colors
+        const bars = previewChart.querySelectorAll(".chart-bar");
+        bars.forEach((bar, index) => {
+          if (index < chartColors.length) {
+            bar.style.backgroundColor = chartColors[index];
+          }
+        });
+
+        // Update border preview
+        const borderWidth = document.getElementById("borderWidth").value;
+        const borderColor = document.getElementById("borderColor").value;
+
+        if (parseInt(borderWidth, 10) > 0) {
+          themePreview.classList.add("preview-with-border");
+          bars.forEach((bar) => {
+            bar.style.border = `${borderWidth}px solid ${borderColor}`;
+          });
+        } else {
+          themePreview.classList.remove("preview-with-border");
+          bars.forEach((bar) => {
+            bar.style.border = "none";
+          });
+        }
+      }
+
+      // Add event listeners for all inputs to update preview
+      document
+        .querySelectorAll(".setting-input, .checkbox-input")
+        .forEach((input) => {
+          input.addEventListener("change", updatePreview);
+          input.addEventListener("input", updatePreview);
+        });
+
+      // Initialize when page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        // Add custom presets to theme selector
+        const themeSelector = document.getElementById("themeSelector");
+        themePresets.forEach((preset) => {
+          if (preset.type !== "built-in") {
+            const option = document.createElement("option");
+            option.value = preset.key;
+            option.textContent = preset.name;
+            themeSelector.appendChild(option);
+          }
+        });
+
+        // Set up event listeners for buttons and select
+        themeSelector.addEventListener("change", function () {
+          onThemeSelected(this.value);
+        });
+
+        document
+          .getElementById("openThemeModalBtn")
+          .addEventListener("click", function () {
+            openThemeModal();
+          });
+
+        // Set up tab switching
+        document.querySelectorAll(".tab").forEach((tab) => {
+          tab.addEventListener("click", () => {
+            // Remove active class from all tabs
+            document.querySelectorAll(".tab").forEach((t) => {
+              t.classList.remove("active");
+            });
+
+            // Add active class to clicked tab
+            tab.classList.add("active");
+
+            // Hide all tab contents
+            document.querySelectorAll(".tab-content").forEach((content) => {
+              content.classList.remove("active");
+            });
+
+            // Show the selected tab content
+            const tabContent = document.getElementById(
+              tab.dataset.tab + "-tab"
+            );
+            if (tabContent) {
+              tabContent.classList.add("active");
+            }
+          });
+        });
+
+        // Set up color input sync with text input
+        const colorInputs = document.querySelectorAll(".color-input");
+        colorInputs.forEach((input) => {
+          const textInput = document.getElementById(input.id + "Text");
+          if (textInput) {
+            // Update text when color changes
+            input.addEventListener("input", () => {
+              textInput.value = input.value;
+              updatePreview();
+            });
+
+            // Update color when text changes
+            textInput.addEventListener("input", () => {
+              // Check if valid hex color
+              if (/^#[0-9A-F]{6}$/i.test(textInput.value)) {
+                input.value = textInput.value;
+                updatePreview();
+              }
+            });
+          }
+        });
+
+        // Add event listeners for all inputs to update preview
+        document
+          .querySelectorAll(".setting-input, .checkbox-input")
+          .forEach((input) => {
+            input.addEventListener("change", updatePreview);
+            input.addEventListener("input", updatePreview);
+          });
+
+        // Set up close modal button
+        document
+          .querySelector(".modal .close")
+          .addEventListener("click", closeThemeModal);
+
+        // Set up apply theme button
+        document
+          .querySelector(".modal-footer .btn-primary")
+          .addEventListener("click", applyCustomTheme);
+
+        // Set up cancel button
+        document
+          .querySelector(".modal-footer .btn-secondary")
+          .addEventListener("click", closeThemeModal);
+      });
+    </script>
+  </body>
+</html>

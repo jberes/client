@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reveal SDK Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap">
+  <link rel="preload" as="image" href="https://images.unsplash.com/photo-1716196067997-19841e2c90aa?q=80&w=1920&auto=format&fit=crop">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+  <style>
+    body, #DashboardView {
+      background-image: url('https://images.unsplash.com/photo-1716196067997-19841e2c90aa?q=80&w=1920&auto=format&fit=crop');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      width: 98%;
+      height: 100%; 
+    }
+
+    [id^="VisualizationBgColor"] {
+      background-color: #001917db !important;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div id="revealView" style="height: calc(100vh - 20px); width: 100%;"></div>
+
+  <!-- Load scripts with defer -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" defer></script>
+  <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js" defer></script>
+  <script src="https://dl.revealbi.io/reveal/libs/1.7.3/infragistics.reveal.js" defer></script>
+
+  <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+      // Set Reveal base URL
+      $.ig.RevealSdkSettings.setBaseUrl("http://localhost:5111/");
+
+      // Set theme
+      $.ig.RevealSdkSettings.theme = cloneCurrentTheme();
+
+      // Create view and load dashboard
+      $.ig.RVDashboard.loadDashboardAsync("Manufacturing").then(dashboard => {
+        var revealView = new $.ig.RevealView("#revealView");
+        revealView.dashboard = dashboard;
+      });
+    });
+
+    function cloneCurrentTheme() {
+      var theme = new $.ig.OceanDarkTheme();
+      theme.visualizationMargin = 6;
+      theme.visualizationBackgroundColor = "transparent";
+      theme.regularFont = "Quicksand";
+      theme.mediumFont = "Quicksand";
+      theme.boldFont = "Quicksand";
+      theme.chartColors = ["#9F2A4F", "#83cb3d", "#FFE909", "#D2FC09"];
+      return theme;
+    }
+  </script>
+
+</body>
+</html>

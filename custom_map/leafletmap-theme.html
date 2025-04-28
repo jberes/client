@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>USA Flight Map with Leaflet + D3 + Reveal</title>
+
+  <!-- Load Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Load D3 -->
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+
+  <!-- Load lodash -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+
+  <!-- Reveal Bridge -->
+  <script src="reveal.bridge.js"></script>
+
+  <style>
+    body, html { 
+      margin: 0; 
+      padding: 0; 
+      height: 100%; 
+      font-family: "Roboto", sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+    }
+    
+    #map { 
+      width: 100%; 
+      height: 100%; 
+      background-color: #1a1a1a;
+    }
+
+    /* Dark theme for map tiles using CSS filters */
+    .dark-theme-filter .leaflet-layer,
+    .dark-theme-filter .leaflet-control-zoom-in,
+    .dark-theme-filter .leaflet-control-zoom-out,
+    .dark-theme-filter .leaflet-control-attribution {
+      filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+    }
+
+    .city-point-outer, .city-point-inner {
+      pointer-events: none;
+    }
+
+    .city-label {
+      font-size: 12px;
+      fill: white;
+      font-family: "Roboto", sans-serif;
+      pointer-events: none;
+    }
+
+    .city-label-background {
+      fill: rgba(0, 128, 0, 0.7);
+      rx: 4;
+      ry: 4;
+      pointer-events: none;
+    }
+
+    .leaflet-overlay-pane svg {
+      z-index: 1000;
+    }
+
+    .tooltip {
+      position: absolute;
+      background: #2d2d2d;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 12px 16px;
+      font-size: 13px;
+      font-family: "Roboto", sans-serif;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 2000;
+      max-width: 320px;
+      line-height: 1.5;
+      color: #ffffff;
+    }
+    
+    .city-name-label {
+      background-color: rgba(0, 128, 0, 0.7);
+      color: white;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    /* Control panel for theme selection */
+    .theme-control {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: rgba(0,0,0,0.7);
+      padding: 10px;
+      border-radius: 5px;
+      color: white;
+      font-family: "Roboto", sans-serif;
+    }
+    .theme-control select {
+      margin-top: 5px;
+      padding: 5px;
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+    }
+  </style>
+</head>
+
+<body>
+<div id="map"></div>
+<div class="tooltip"></div>
+<div class="theme-control">
+  <label for="theme-select">Map Theme:</label>
+  <select id="theme-select" onchange="changeMapTheme(this.value)">
+    <option value="light">Light (Default)</option>
+    <option value="dark" selected>Dark</option>
+    <option value="satellite">Satellite</option>
+    <option value="night">Night View</option>
+    <option value="transport">Transport</option>
+  </select>
+</div>
+
+<script>
+  // Initialize dimensions and global variables
+  let width = window.innerWidth;
+  let height = window.innerHeight;
+  let cities = [];
+  let links = [];
+  let cityLabels = {};
+  const tooltip = d3.select(".tooltip");
+  
+  // Initialize Leaflet Map
+  const map = L.map('map').setView([39.8283, -98.5795], 4); // Center of USA
+  
+  // Store tile layers for different themes
+  const tileLayers = {
+    light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors & CartoDB',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }),
+    dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors & CartoDB',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }),
+    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+      maxZoom: 19
+    }),
+    night: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors & CartoDB',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }),
+    transport: L.tileLayer('https://{s}.tile.thunderforest.com/transport-dark/{z}/{x}/{y}.png?apikey=6170aad10dfd42a38d4d8c709a536f38', {
+      attribution: '&copy; OpenStreetMap contributors & Thunderforest',
+      maxZoom: 19
+    })
+  };
+  
+  // Set default theme (dark)
+  tileLayers.dark.addTo(map);
+  
+  // Function to change map theme
+  function changeMapTheme(theme) {
+    // Remove all existing tile layers
+    Object.values(tileLayers).forEach(layer => {
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+      }
+    });
+    
+    // Add selected theme
+    tileLayers[theme].addTo(map);
+    
+    // Toggle filter class for CSS filter method (only for light theme)
+    if (theme === 'light') {
+      document.getElementById('map').classList.add('dark-theme-filter');
+    } else {
+      document.getElementById('map').classList.remove('dark-theme-filter');
+    }
+  }
+  
+  // Create SVG layer for D3 elements
+  // Note: We're using the proper Leaflet way to create the svg overlay
+  const svg = d3.select(map.getPanes().overlayPane).append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .style("position", "absolute")
+    .style("left", 0)
+    .style("top", 0)
+    .style("z-index", 1000)
+    .style("pointer-events", "none");
+  
+  const g = svg.append("g").attr("class", "leaflet-zoom-hide");
+  
+  // Data conversion helper
+  function dataToJson(data) {
+    if (!data?.metadata?.columns) {
+      console.warn("Invalid data structure received");
+      return [];
+    }
+    const propertyNames = data.metadata.columns.map((col) => col.name);
+
+    if (!Array.isArray(data.data)) {
+      console.warn("Data is not an array");
+      return [];
+    }
+
+    return data.data.map((row) =>
+      row.reduce((acc, value, index) => {
+        acc[propertyNames[index]] = value;
+        return acc;
+      }, {})
+    );
+  }
+  
+  // Projection helper
+  function projectPoint(lat, lon) {
+    const point = map.latLngToLayerPoint(new L.LatLng(lat, lon));
+    return [point.x, point.y];
+  }
+
+  // Format date for display
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = date.toLocaleString("default", { month: "short" });
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+
+  // Format tooltip content
+  function formatTooltip(d) {
+    const ticketPrice = d.ticketPrice !== undefined && d.ticketPrice !== null
+      ? d.ticketPrice.toLocaleString()
+      : "N/A";
+
+    return `
+      <div style="font-family: 'Roboto', sans-serif; color: #333;">
+        <div style="font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #eaeaea; padding-bottom: 8px; font-size: 14px;">
+          ${d.destinationName}
+        </div>
+        <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: baseline;">
+          <div style="font-weight: 500; color: #666;">Ticket Price</div>
+          <div style="font-size: 15px; font-weight: bold;">${ticketPrice}</div>
+          
+          <div style="font-weight: 500; color: #666;">Origin</div>
+          <div>${d.originCity}, ${d.originState}</div>
+          
+          <div style="font-weight: 500; color: #666;">Destination</div>
+          <div>${d.destinationCity}, ${d.destinationState}</div>
+          
+          <div style="font-weight: 500; color: #666;">Order Date</div>
+          <div>${formatDate(d.orderDate)}</div>
+        </div>
+      </div>`;
+  }
+  
+  // Update SVG layer on map changes
+  function updateSvgLayer() {
+    const bounds = map.getBounds();
+    const topLeft = map.latLngToLayerPoint(bounds.getNorthWest());
+    const bottomRight = map.latLngToLayerPoint(bounds.getSouthEast());
+    
+    // Resize and reposition SVG
+    svg.attr("width", bottomRight.x - topLeft.x)
+       .attr("height", bottomRight.y - topLeft.y)
+       .style("left", topLeft.x + "px")
+       .style("top", topLeft.y + "px");
+    
+    // Transform the g element to match the map's position
+    g.attr("transform", `translate(${-topLeft.x},${-topLeft.y})`);
+    
+    // Redraw content
+    drawFlightPaths();
+    updateCityLabels();
+  }
+  
+  // Create city labels that show on hover
+  function createCityLabels() {
+    // Remove any existing labels
+    d3.selectAll('.city-name-label').remove();
+    cityLabels = {};
+    
+    // Create a label for each unique city
+    links.forEach((d, i) => {
+      // Origin city label
+      const originId = `origin-${i}`;
+      const originDiv = document.createElement('div');
+      originDiv.className = 'city-name-label';
+      originDiv.id = originId;
+      originDiv.textContent = d.originCity;
+      document.body.appendChild(originDiv);
+      cityLabels[originId] = {
+        element: originDiv,
+        coordinates: d.coordinates[0]
+      };
+      
+      // Destination city label
+      const destId = `dest-${i}`;
+      const destDiv = document.createElement('div');
+      destDiv.className = 'city-name-label';
+      destDiv.id = destId;
+      destDiv.textContent = d.destinationCity;
+      document.body.appendChild(destDiv);
+      cityLabels[destId] = {
+        element: destDiv,
+        coordinates: d.coordinates[1]
+      };
+    });
+  }
+  
+  // Update city label positions
+  function updateCityLabels() {
+    Object.keys(cityLabels).forEach(id => {
+      const label = cityLabels[id];
+      const coords = label.coordinates;
+      const point = map.latLngToLayerPoint(new L.LatLng(coords[1], coords[0]));
+      
+      label.element.style.transform = `translate(${point.x}px, ${point.y - 25}px)`;
+      label.element.style.position = 'absolute';
+      label.element.style.left = '0';
+      label.element.style.top = '0';
+    });
+  }
+  
+  // Draw flight paths
+  function drawFlightPaths() {
+    // Clear existing paths and points
+    g.selectAll("*").remove();
+    
+    // Draw flight paths (arcs)
+    const arcs = g.selectAll(".flight-path")
+      .data(links)
+      .enter()
+      .append("path")
+      .attr("class", "flight-path")
+      .attr("d", d => {
+        const start = projectPoint(d.coordinates[0][1], d.coordinates[0][0]);
+        const end = projectPoint(d.coordinates[1][1], d.coordinates[1][0]);
+        const dx = end[0] - start[0],
+              dy = end[1] - start[1],
+              dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+        return `M${start[0]},${start[1]}A${dr},${dr} 0 0,1 ${end[0]},${end[1]}`;
+      })
+      .style("fill", "none")
+      .style("stroke", "orange")
+      .style("stroke-width", 2)
+      .style("pointer-events", "visible")
+      .style("cursor", "pointer")
+      .on("mouseover", function (d, i) {
+        // Highlight path
+        d3.select(this).style("stroke", "red").style("stroke-width", 4);
+        
+        // Show tooltip
+        tooltip
+          .style("opacity", 1)
+          .html(formatTooltip(d))
+          .style("left", (d3.event.pageX + 10) + "px")
+          .style("top", (d3.event.pageY - 10) + "px");
+          
+        // Show city labels
+        d3.select(`#origin-${i}`).style("opacity", 1);
+        d3.select(`#dest-${i}`).style("opacity", 1);
+      })
+      .on("mousemove", function() {
+        // Update tooltip position when mouse moves
+        tooltip
+          .style("left", (d3.event.pageX + 10) + "px")
+          .style("top", (d3.event.pageY - 10) + "px");
+      })
+      .on("mouseout", function (d, i) {
+        // Restore path styling
+        d3.select(this).style("stroke", "orange").style("stroke-width", 2);
+        
+        // Hide tooltip
+        tooltip.style("opacity", 0);
+        
+        // Hide city labels
+        d3.select(`#origin-${i}`).style("opacity", 0);
+        d3.select(`#dest-${i}`).style("opacity", 0);
+      });
+
+    // Draw city points (origin and destination)
+    const cityGroups = g.selectAll(".city-group")
+      .data(links)
+      .enter()
+      .append("g")
+      .attr("class", "city-group");
+
+    // Origin outer and inner circles
+    cityGroups.append("circle")
+      .attr("class", "city-point-outer")
+      .attr("r", 8)
+      .style("fill", "rgba(0, 128, 0, 0.3)")
+      .attr("cx", d => projectPoint(d.coordinates[0][1], d.coordinates[0][0])[0])
+      .attr("cy", d => projectPoint(d.coordinates[0][1], d.coordinates[0][0])[1]);
+
+    cityGroups.append("circle")
+      .attr("class", "city-point-inner")
+      .attr("r", 4)
+      .style("fill", "green")
+      .attr("cx", d => projectPoint(d.coordinates[0][1], d.coordinates[0][0])[0])
+      .attr("cy", d => projectPoint(d.coordinates[0][1], d.coordinates[0][0])[1]);
+
+    // Destination outer and inner circles
+    cityGroups.append("circle")
+      .attr("class", "city-point-outer")
+      .attr("r", 8)
+      .style("fill", "rgba(0, 128, 0, 0.3)")
+      .attr("cx", d => projectPoint(d.coordinates[1][1], d.coordinates[1][0])[0])
+      .attr("cy", d => projectPoint(d.coordinates[1][1], d.coordinates[1][0])[1]);
+
+    cityGroups.append("circle")
+      .attr("class", "city-point-inner")
+      .attr("r", 4)
+      .style("fill", "green")
+      .attr("cx", d => projectPoint(d.coordinates[1][1], d.coordinates[1][0])[0])
+      .attr("cy", d => projectPoint(d.coordinates[1][1], d.coordinates[1][0])[1]);
+  }
+
+  // Process the data from Reveal
+  window.revealBridgeListener = {
+    dataReady: (incomingData) => {
+      console.log("Data received from Reveal Bridge");
+      const processedData = dataToJson(incomingData);
+
+      // Validate necessary fields
+      const hasValidData = processedData.every((record) => {
+        const requiredFields = [
+          "origin-longitude", "origin-latitude",
+          "destination-longitude", "destination-latitude",
+          "origin-name", "origin-city", "origin-state",
+          "destination-name", "destination-city", "destination-state",
+          "OrderDate"
+        ];
+        return requiredFields.every(field => 
+          record[field] !== undefined && 
+          record[field] !== null && 
+          record[field] !== "" &&
+          !Number.isNaN(record[field])
+        );
+      });
+
+      if (!hasValidData) {
+        console.error("Data validation failed, cannot draw map");
+        return;
+      }
+
+      links = processedData.map((record) => ({
+        coordinates: [
+          [record["origin-longitude"], record["origin-latitude"]],
+          [record["destination-longitude"], record["destination-latitude"]],
+        ],
+        originName: record["origin-name"],
+        originCity: record["origin-city"],
+        originState: record["origin-state"],
+        destinationName: record["destination-name"],
+        destinationCity: record["destination-city"],
+        destinationState: record["destination-state"],
+        orderDate: record["OrderDate"],
+        ticketPrice: record["TicketPrice"] || 0,
+        customerId: record["CustomerId"] || "Unknown Customer"
+      }));
+
+      // Create city labels
+      createCityLabels();
+      
+      // Draw the map elements
+      updateSvgLayer();
+    }
+  };
+
+  // Register map events to update SVG
+  map.on("viewreset moveend zoomend", updateSvgLayer);
+
+  // On resize
+  window.addEventListener("resize", _.debounce(() => {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    map.invalidateSize();
+    updateSvgLayer();
+  }, 250));
+
+  // For testing/debugging purposes
+  function addTestData() {
+    if (links.length === 0) {
+      console.log("Adding test data for debugging");
+      links = [
+        {
+          coordinates: [
+            [-74.0060, 40.7128], // NYC
+            [-118.2437, 34.0522], // LA
+          ],
+          originName: "JFK International",
+          originCity: "New York",
+          originState: "NY",
+          destinationName: "Los Angeles International",
+          destinationCity: "Los Angeles",
+          destinationState: "CA",
+          orderDate: "2025-04-25",
+          ticketPrice: 7560,
+          customerId: "CUST1001432",
+        },
+        {
+          coordinates: [
+            [-87.6298, 41.8781], // Chicago
+            [-77.0369, 38.9072], // DC
+          ],
+          originName: "O'Hare International",
+          originCity: "Chicago",
+          originState: "IL",
+          destinationName: "Ronald Reagan",
+          destinationCity: "Washington",
+          destinationState: "DC",
+          orderDate: "2025-04-24",
+          ticketPrice: 5990,
+          customerId: "CUST9087652",
+        },
+        {
+          coordinates: [
+            [-122.3321, 47.6062], // Seattle
+            [-104.9903, 39.7392], // Denver
+          ],
+          originName: "Sea-Tac Airport",
+          originCity: "Seattle",
+          originState: "WA",
+          destinationName: "Denver International",
+          destinationCity: "Denver",
+          destinationState: "CO",
+          orderDate: "2025-04-23",
+          ticketPrice: 6249,
+          customerId: "CUST3456789",
+        }
+      ];
+      
+      // Create city labels
+      createCityLabels();
+      
+      // Draw the map elements
+      updateSvgLayer();
+    }
+  }
+  
+  // Uncomment for testing:
+  // setTimeout(addTestData, 1000);
+
+  // Notify Reveal that extension is ready
+  if (window.revealBridge && typeof window.revealBridge.notifyExtensionIsReady === 'function') {
+    window.revealBridge.notifyExtensionIsReady();
+  } else {
+    console.warn("Reveal Bridge not found. This may be expected during development.");
+    // For testing without Reveal
+    // setTimeout(addTestData, 1000);
+  }
+</script>
+</body>
+</html>

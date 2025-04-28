@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="reveal.bridge.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  body {
+    margin: 0;
+    padding: 20px;
+    background: #ffffff;
+    font-family: 'Inter', Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    box-sizing: border-box;
+  }
+
+  .kpi-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #ffffff;
+    border-radius: 16px; /* still slightly rounded */
+    padding: 20px 30px;
+    width: 260px;
+    box-sizing: border-box;
+    text-align: center;
+    /* FLAT style - no shadow */
+  }
+
+  .kpi-image {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 12px;
+  }
+
+  .kpi-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 8px;
+  }
+
+  .kpi-change {
+    font-size: 16px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .kpi-change.positive {
+    color: #28a745;
+  }
+
+  .kpi-change.negative {
+    color: #dc3545;
+  }
+
+  .kpi-arrow {
+    font-size: 18px;
+    margin-left: 5px;
+  }
+
+  .kpi-rank {
+    font-size: 14px;
+    color: #777777;
+    margin-top: 0;
+  }
+</style>
+
+<div class="kpi-card">
+  <img id="kpiImage" class="kpi-image" src="" alt="KPI Icon" />
+  <div class="kpi-title" id="kpiTitle">Loading...</div>
+  <div class="kpi-value" id="kpiValue">-</div>
+  <div class="kpi-change" id="kpiChange" style="display: none;">
+    <span id="changeValue"></span>
+    <span id="changeArrow" class="kpi-arrow"></span>
+  </div>
+  <div class="kpi-rank" id="kpiRank" style="display: none;">Rank: -</div>
+</div>
+
+<script>
+  function dataToJson(data) {
+    if (!data?.metadata?.columns) return [];
+    const propertyNames = data.metadata.columns.map((col) => col.name);
+    if (!Array.isArray(data.data)) return [];
+    return data.data.map((row) =>
+      row.reduce((acc, value, index) => {
+        acc[propertyNames[index]] = value;
+        return acc;
+      }, {})
+    );
+  }
+
+  function getImageForField(fieldName) {
+    if (!fieldName) return '';
+    if (fieldName.startsWith('KPI1_')) {
+      return 'https://cdn-icons-png.flaticon.com/512/3874/3874620.png';
+    } else if (fieldName.startsWith('KPI2_')) {
+      return 'https://cdn-icons-png.flaticon.com/512/3048/3048394.png';
+    } else if (fieldName.startsWith('KPI3_')) {
+      return 'https://cdn-icons-png.flaticon.com/512/2965/2965567.png';
+    } else {
+      return 'https://cdn-icons-png.flaticon.com/512/1023/1023656.png';
+    }
+  }
+
+  function formatPercent(val) {
+    if (val === undefined || val === null) return '-';
+    if (typeof val === 'string' && val.includes('%')) return val;
+    let numVal = typeof val === 'string' ? parseFloat(val) : val;
+    if (numVal >= -1 && numVal <= 1) numVal = numVal * 100;
+    return numVal.toFixed(1) + '%';
+  }
+
+  function processRevealData(incomingData) {
+    try {
+      const columns = incomingData.metadata.columns;
+      const visualizationData = dataToJson(incomingData);
+      if (!visualizationData.length) return;
+
+      const row = visualizationData[0];
+
+      const currentField = columns[0]?.name;
+      const priorField = columns[1]?.name;
+      const changeField = columns[2]?.name;
+      const rankField = columns[3]?.name;
+
+      $('#kpiImage').attr('src', getImageForField(currentField));
+      $('#kpiTitle').text(currentField.replace(/_/g, ' ').replace(/KPI\d+ /, '').trim());
+      $('#kpiValue').text(row[currentField]?.toLocaleString() ?? '-');
+
+      if (changeField && row[changeField] !== undefined) {
+        let percentChange = row[changeField];
+        if (typeof percentChange === 'string') {
+          percentChange = parseFloat(percentChange.replace('%', '')) / 100;
+        }
+
+        $('#kpiChange').show();
+        $('#changeValue').text(formatPercent(percentChange));
+
+        if (percentChange < 0) {
+          $('#kpiChange').removeClass('positive').addClass('negative');
+          $('#changeArrow').text('▼');
+        } else {
+          $('#kpiChange').removeClass('negative').addClass('positive');
+          $('#changeArrow').text('▲');
+        }
+      } else {
+        $('#kpiChange').hide();
+      }
+
+      if (rankField && row[rankField] !== undefined) {
+        $('#kpiRank').show().text(`Rank: ${row[rankField]}`);
+      } else {
+        $('#kpiRank').hide();
+      }
+    } catch (error) {
+      console.error('Error processing Reveal data:', error);
+    }
+  }
+
+  window.revealBridgeListener = {
+    dataReady: (incomingData) => {
+      processRevealData(incomingData);
+    }
+  };
+
+  $(document).ready(function () {
+    window.revealBridge.notifyExtensionIsReady();
+  });
+</script>

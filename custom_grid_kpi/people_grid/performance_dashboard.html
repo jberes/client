@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reveal Sdk - Load Dashboard</title>   
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">   
+    
+    <style>
+        [id^="VisualizationBgColor_"] {
+          border: 1px solid rgb(238, 237, 237);
+        }
+      </style>
+
+</head>
+
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+    <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js" ></script>    
+    <script>window.revealDisableKeyboardManagement = true;</script>   
+    <script src="https://dl.revealbi.io/reveal/libs/1.7.3/infragistics.reveal.js"></script>
+
+    <script type="text/javascript">
+        $.ig.RevealSdkSettings.setBaseUrl("http://localhost:5111");  
+
+        $.ig.RevealSdkSettings.enableActionsOnHoverTooltip = true;
+
+        var theme = new $.ig.RevealTheme();
+
+        var theme = new $.ig.RevealTheme();
+            //theme.fontColor = "#ff0000";
+            //theme.accentColor = "rgb(192, 80, 77)";
+            theme.dashboardBackgroundColor = "#F9FAFB";
+            //theme.visualizationBackgroundColor = "rgb(153, 255, 255)";
+            //theme.chartColors = ["rgb(192, 80, 77)", "rgb(101, 197, 235)", "rgb(232, 77, 137)"];
+            theme.chartColors = [
+              "rgb(161, 196, 253)",  // Light Blue
+              "rgb(250, 219, 216)",  // Light Coral Pink
+              "rgb(214, 234, 248)",  // Ice Blue
+            ];
+
+            // theme.chartColors = [
+            //   "rgb(229, 229, 229)",  // Light Gray
+            //   "rgb(204, 229, 255)",  // Pale Sky Blue
+            //   "rgb(255, 218, 233)",  // Baby Pink
+            // ];
+
+
+            // theme.chartColors = [
+            //   "rgb(192, 222, 237)",  // Powder Blue
+            //   "rgb(210, 234, 203)",  // Light Sage
+            //   "rgb(255, 229, 217)",  // Peach Cream
+            // ];
+
+
+
+            theme.regularFont = "Inter";
+            theme.mediumFont = "Inter";
+            theme.boldFont = "Inter";
+            theme.useRoundedCorners = true;
+
+
+        theme.visualizationMargin = 8;
+        //theme.widgetMargin = 0;
+
+
+        $.ig.RevealSdkSettings.theme = theme;
+
+        $.ig.RVDashboard.loadDashboard("Hospital_01").then(dashboard => { 
+        var revealView = new $.ig.RevealView("#revealView");
+        revealView.interactiveFilteringEnabled = true;
+        revealView.showEditDataSource = true;
+        //revealView.singleVisualizationMode = true;
+        revealView.dashboard = dashboard;
+
+        revealView.onDataSourcesRequested = (callback) => {
+          var localFileItem4 = new $.ig.RVLocalFileDataSourceItem();
+          localFileItem4.id = "Healthcare";
+          var excelDataSourceItem4 = new $.ig.RVExcelDataSourceItem(localFileItem4);
+          excelDataSourceItem4.id = "Healthcare";
+          excelDataSourceItem4.title = "healthcare Data";
+
+          callback(new $.ig.RevealDataSources([], [excelDataSourceItem4], true));
+        };
+
+        //revealView.maximizedVisualization = dashboard.visualizations.getByTitle('Freight by Country');
+        // var territoryFilter = revealView.dashboard.filters.getByTitle("CustomerId");
+        // territoryFilter.GetFilterValues( filterValues => {
+        // console.log(filterValues);});
+
+        revealView.chartTypes.push({
+        title: "People Grid",
+        url: "people_grid_bound.html",
+        icon: "https://help.revealbi.io/img/logo.png",
+        groups: ["Custom Visualizations"],
+      });
+});
+
+
+
+    </script>
+    <div id="revealView" style="height: calc(100vh - 25px); width: 100%; "></div>
+    <!-- <div id="revealView" style="height: 300px; width: 300px; "></div> -->
+
+</body>
+
+</html>

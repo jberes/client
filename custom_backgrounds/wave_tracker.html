@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reveal Sdk - HTML/JavaScript</title>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet">
+ 
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+    <style>
+        body,
+        #DashboardView {
+            background-image: url('https://images.unsplash.com/photo-1518715058720-e56f02e77fe5?q=80&w=3280&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            width: 98%;
+            height: 100%; 
+        }
+
+        /**
+         * This is the CSS that will be applied to all visualizations.
+         */
+        [id^="VisualizationBgColor"] {
+            background-color: #0f6d8250 !important;
+        }
+
+        
+        /* * This is the CSS that will be applied to a specific visualizations.
+         * The ID of the visualization is used to target it specifically.
+         * The ID is in the format of VisualizationBgColor_<VisualizationName>_<DefaultBGColor>
+         */
+/*        #VisualizationBgColor_Overall_Plant_Productivity_000000 {
+            background-color: #0f6c82 !important;
+        }  */
+
+
+    </style>
+</head>
+
+<body>
+    <div id="revealView" style="height: calc(100vh - 20px); width: 100%;"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
+    <script src="https://dl.revealbi.io/reveal/libs/1.7.3/infragistics.reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <script type="text/javascript">
+        $.ig.RevealSdkSettings.setBaseUrl("http://localhost:5111/");
+        var theme = cloneCurrentTheme();
+        $.ig.RevealSdkSettings.theme = theme;
+        $.ig.RVDashboard.loadDashboardAsync("Manufacturing").then(dashboard => {
+            var revealView = new $.ig.RevealView("#revealView");
+            revealView.dashboard = dashboard;
+        });
+
+        function cloneCurrentTheme() {
+            var theme = new $.ig.OceanDarkTheme();
+            theme.visualizationMargin = 10;
+            theme.visualizationBackgroundColor = "transparent";
+            theme.regularFont = "Poppins";
+            theme.mediumFont = "Poppins";
+            theme.boldFont = "Poppins";
+            theme.chartColors = ["#21a2f3","#37c373","#29adb6","#6266c2"];
+            return theme;
+        }     
+    </script>
+</body>
+
+</html>
