@@ -2,78 +2,82 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reveal Sdk - HTML/JavaScript</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reveal SDK - Lato Theme</title>
 
-    <!-- Google Font -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
- 
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    
-    <style>
-        body,
-        #DashboardView {
-            background-image: url('https://images.unsplash.com/photo-1586783965334-e29d38a767b6?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center;
-            width: 98%;
-            height: 100%; 
-        }
+  <!-- Preconnect and preload for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap">
+  <link rel="preload" as="image" href="https://images.unsplash.com/photo-1586783965334-e29d38a767b6?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 
-        /**
-         * This is the CSS that will be applied to all visualizations.
-         */
-        [id^="VisualizationBgColor"] {
-            background-color: #184b6e4a !important;
-        }
+  <style>
+    body, #DashboardView {
+      background-image: url('https://images.unsplash.com/photo-1586783965334-e29d38a767b6?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      width: 98%;
+      height: 100%;
+    }
 
-        
-        /* * This is the CSS that will be applied to a specific visualizations.
-         * The ID of the visualization is used to target it specifically.
-         * The ID is in the format of VisualizationBgColor_<VisualizationName>_<DefaultBGColor>
-         */
-        #VisualizationBgColor_Overall_Plant_Productivity_000000 {
-            background-color: transparent !important;
-        }  
+    [id^="VisualizationBgColor"] {
+      background-color: #184b6e4a !important;
+    }
 
-    </style>
+    #VisualizationBgColor_Overall_Plant_Productivity_000000 {
+      background-color: transparent !important;
+    }
+  </style>
+
 </head>
 
 <body>
-    <div id="revealView" style="height: calc(100vh - 20px); width: 100%;"></div>
+  <div id="revealView" style="height: calc(100vh - 20px); width: 100%;"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
-    <script src="https://dl.revealbi.io/reveal/libs/1.7.3/infragistics.reveal.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  <!-- Scripts deferred for better performance -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" defer></script>
+  <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js" defer></script>
+  <script src="https://dl.revealbi.io/reveal/libs/1.7.3/infragistics.reveal.js" defer></script>
 
-    <script type="text/javascript">
-        $.ig.RevealSdkSettings.setBaseUrl("http://localhost:5111/");
-        
-        // set theme properties
-        var theme = cloneCurrentTheme();        
-        $.ig.RevealSdkSettings.theme = theme;
-        $.ig.RVDashboard.loadDashboardAsync("Manufacturing").then(dashboard => {
-            var revealView = new $.ig.RevealView("#revealView");
-            revealView.dashboard = dashboard;
-        });
+  <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+      function cloneCurrentTheme(transparentViz) {
+        var theme = new $.ig.OceanDarkTheme();
+        theme.visualizationMargin = 6;
+        theme.visualizationBackgroundColor = transparentViz ? "transparent" : theme.visualizationBackgroundColor;
+        theme.regularFont = "Lato";
+        theme.mediumFont = "Lato";
+        theme.boldFont = "Lato";
+        theme.chartColors = ["#C9EBFF", "#55BCF6", "#FFE909", "#D2FC09"];
+        return theme;
+      }
 
-        function cloneCurrentTheme() {
-            var theme = new $.ig.OceanDarkTheme();
-            theme.visualizationMargin = 6;
-            theme.visualizationBackgroundColor = "transparent";
-            theme.regularFont = "Lato";
-            theme.mediumFont = "Lato";
-            theme.boldFont = "Lato";
-            theme.chartColors = ["#C9EBFF", "#55BCF6",  "#FFE909",  "#D2FC09"];
-            return theme;
-        }        
-    </script>
+      $.ig.RevealSdkSettings.setBaseUrl("http://localhost:5111/");
+      var theme = cloneCurrentTheme(true);
+      $.ig.RevealSdkSettings.theme = theme;
+
+      $.ig.RVDashboard.loadDashboardAsync("Manufacturing").then(dashboard => {
+        var revealView = new $.ig.RevealView("#revealView");
+
+        revealView.onEditModeEntered = () => {
+          $.ig.RevealSdkSettings.theme = cloneCurrentTheme(false);
+        };
+
+        revealView.onEditModeExited = () => {
+          $.ig.RevealSdkSettings.theme = cloneCurrentTheme(true);
+          revealView.refreshTheme();
+        };
+
+        revealView.dashboard = dashboard;
+      });
+    });
+  </script>
 </body>
 
 </html>

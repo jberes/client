@@ -40,31 +40,34 @@
   <script src="https://dl.revealbi.io/reveal/libs/1.7.3/infragistics.reveal.js" defer></script>
 
   <script type="text/javascript">
-    document.addEventListener('DOMContentLoaded', function () {
-      // Set Reveal base URL
+   document.addEventListener('DOMContentLoaded', function () {
+
+      function cloneCurrentTheme(transparentViz) {
+        var theme = new $.ig.OceanDarkTheme();
+        theme.visualizationMargin = 6;
+        theme.visualizationBackgroundColor = transparentViz ? "transparent" : theme.visualizationBackgroundColor;
+        theme.regularFont = "Quicksand";
+        theme.mediumFont = "Quicksand";
+        theme.boldFont = "Quicksand";
+        theme.chartColors = ["#7A9981", "#A1C48C", "#29adb6", "#CAA5A1"];
+        return theme;
+      }
+
       $.ig.RevealSdkSettings.setBaseUrl("http://localhost:5111/");
-
-      // Set theme
-      $.ig.RevealSdkSettings.theme = cloneCurrentTheme();
-
-      // Create view and load dashboard
+      var theme = cloneCurrentTheme(true);        
+      $.ig.RevealSdkSettings.theme = theme;
       $.ig.RVDashboard.loadDashboardAsync("Manufacturing").then(dashboard => {
-        var revealView = new $.ig.RevealView("#revealView");
-        revealView.dashboard = dashboard;
+          var revealView = new $.ig.RevealView("#revealView");
+          revealView.onEditModeEntered = () => {
+              $.ig.RevealSdkSettings.theme = cloneCurrentTheme(false);
+          }
+          revealView.onEditModeExited = () => {
+              $.ig.RevealSdkSettings.theme = cloneCurrentTheme(true);
+              revealView.refreshTheme();
+          }
+          revealView.dashboard = dashboard;
       });
     });
-
-    function cloneCurrentTheme() {
-      var theme = new $.ig.OceanDarkTheme();
-      theme.visualizationMargin = 6;
-      theme.visualizationBackgroundColor = "transparent";
-      theme.regularFont = "Quicksand";
-      theme.mediumFont = "Quicksand";
-      theme.boldFont = "Quicksand";
-      theme.chartColors = ["#9F2A4F", "#83cb3d", "#FFE909", "#D2FC09"];
-      return theme;
-    }
-  </script>
-
+    </script>
 </body>
 </html>
